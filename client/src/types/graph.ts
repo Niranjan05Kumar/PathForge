@@ -70,3 +70,70 @@ export interface CompareRequest {
   target: string;
   graph: GraphPayload;
 }
+
+export interface GraphGeneratorOptions {
+  nodes: number;
+  edges?: number;
+  density?: number;
+  topology: 'random' | 'sparse' | 'dense' | 'grid' | 'tree';
+  directed?: boolean;
+  weighted?: boolean;
+  seed?: number;
+  minWeight?: number;
+  maxWeight?: number;
+}
+
+export interface BenchmarkAlgorithmMetrics {
+  algorithm: string;
+  heuristic?: string;
+  runs: number;
+  avgTimeMs: number;
+  minTimeMs: number;
+  maxTimeMs: number;
+  stdDevTimeMs: number;
+  avgNodesVisited: number;
+  avgEdgesExamined: number;
+  avgEdgeRelaxations: number;
+  pathCost: number | null;
+  found: boolean;
+}
+
+export interface BenchmarkSuiteResult {
+  success: boolean;
+  graphSummary: {
+    nodes: number;
+    edges: number;
+    topology: string;
+    directed: boolean;
+    weighted: boolean;
+    seed: number;
+  };
+  source: string;
+  target: string;
+  runs: number;
+  costMatch: boolean;
+  fastest: string;
+  fewestVisited: string;
+  results: BenchmarkAlgorithmMetrics[];
+}
+
+export interface BenchmarkRequest {
+  runs?: number;
+  graphConfig?: GraphGeneratorOptions;
+  graph?: GraphPayload;
+  source?: string;
+  target?: string;
+  algorithms?: Array<string | { algorithm: string; heuristic?: string }>;
+}
+
+export interface GenerateGraphResponse {
+  success: boolean;
+  topology: string;
+  seed: number;
+  directed: boolean;
+  weighted: boolean;
+  nodeCount: number;
+  edgeCount: number;
+  nodes: Array<{ id: string; label: string; x?: number; y?: number }>;
+  edges: Array<{ source: string; target: string; weight: number }>;
+}

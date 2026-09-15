@@ -5,6 +5,8 @@
 #include "algorithm/Dijkstra.h"
 #include "algorithm/AStar.h"
 #include "algorithm/Heuristics.h"
+#include "benchmark/Benchmark.h"
+#include "benchmark/GraphGenerator.h"
 #include <nlohmann/json.hpp>
 #include <sstream>
 #include <algorithm>
@@ -46,6 +48,36 @@ std::string JsonBridge::processString(const std::string& inputJson) {
         root = json::parse(inputJson);
     } catch (const json::parse_error& e) {
         return makeError("INVALID_JSON", std::string("Malformed JSON: ") + e.what()).dump();
+    }
+
+    std::string command = root.value("command", "");
+    if (command == "generate_graph" || root.contains("generate")) {
+        try {
+            const auto& genConfig = root.contains("graphConfig") ? root["graphConfig"] : (root.contains("generate") ? root["generate"] : root);
+            GraphGeneratorOptions opts;
+            opts.nodes = genConfig.value("nodes", 100);
+            opts.edges = genConfig.value("edges", 0);
+            opts.density = genConfig.value("density", 0.0);
+            opts.topology = genConfig.value("topology", "sparse");
+            opts.directed = genConfig.value("directed", false);
+            opts.weighted = genConfig.value("weighted", true);
+            opts.seed = (genConfig.contains("seed") && genConfig["seed"].is_number()) ? genConfig["seed"].get<uint64_t>() : 42ULL;
+            opts.minWeight = genConfig.value("minWeight", 1.0);
+            opts.maxWeight = genConfig.value("maxWeight", 10.0);
+
+            Graph g = GraphGenerator::generate(opts);
+            return GraphGenerator::toJson(g, opts.topology, opts.seed).dump();
+        } catch (const std::exception& e) {
+            return makeError("GENERATION_ERROR", e.what()).dump();
+        }
+    }
+
+    if (command == "benchmark" || root.contains("benchmark") || (root.contains("graphConfig") && root.contains("algorithms"))) {
+        try {
+            return Benchmark::processBenchmark(root).dump();
+        } catch (const std::exception& e) {
+            return makeError("BENCHMARK_ERROR", e.what()).dump();
+        }
     }
 
     if (!root.contains("algorithm") || !root["algorithm"].is_string()) {

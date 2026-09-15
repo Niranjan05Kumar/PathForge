@@ -1,4 +1,13 @@
-import { PathfindRequest, PathfindResult, CompareRequest, CompareResult } from '../types/graph';
+import {
+  PathfindRequest,
+  PathfindResult,
+  CompareRequest,
+  CompareResult,
+  BenchmarkRequest,
+  BenchmarkSuiteResult,
+  GraphGeneratorOptions,
+  GenerateGraphResponse
+} from '../types/graph';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -51,6 +60,48 @@ export async function runCompare(payload: CompareRequest): Promise<ApiResponse<C
   }
 }
 
+export async function runBenchmark(payload: BenchmarkRequest): Promise<ApiResponse<BenchmarkSuiteResult>> {
+  try {
+    const res = await fetch('/api/benchmark/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const json = await res.json();
+    return json;
+  } catch (err: any) {
+    return {
+      success: false,
+      error: {
+        code: 'NETWORK_ERROR',
+        message: err.message || 'Failed to communicate with benchmark API.'
+      }
+    };
+  }
+}
+
+export async function generateGraph(options: GraphGeneratorOptions): Promise<ApiResponse<GenerateGraphResponse>> {
+  try {
+    const res = await fetch('/api/graph/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(options)
+    });
+
+    const json = await res.json();
+    return json;
+  } catch (err: any) {
+    return {
+      success: false,
+      error: {
+        code: 'NETWORK_ERROR',
+        message: err.message || 'Failed to communicate with graph generation API.'
+      }
+    };
+  }
+}
+
 export async function checkHealth(): Promise<any> {
   try {
     const res = await fetch('/api/health');
@@ -59,3 +110,4 @@ export async function checkHealth(): Promise<any> {
     return { status: 'error', message: err.message };
   }
 }
+
