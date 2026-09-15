@@ -1,61 +1,25 @@
 #include <iostream>
-#include "graph/Graph.h"
-#include "algorithm/BFS.h"
-#include "algorithm/DFS.h"
-#include "algorithm/Dijkstra.h"
-#include "algorithm/AStar.h"
+#include <string>
+#include "ipc/JsonBridge.h"
 
 int main(int argc, char* argv[]) {
-    std::cout << "PathForge Engine v0.1.0 (DSA Core)" << std::endl;
     if (argc > 1) {
-        std::cout << "Argument: " << argv[1] << std::endl;
+        std::string arg = argv[1];
+        if (arg == "--version" || arg == "-v") {
+            std::cout << "PathForge Engine v0.1.0 (DSA Core)" << std::endl;
+            return 0;
+        }
+        if (arg == "--help" || arg == "-h") {
+            std::cout << "PathForge Native C++ Engine\n"
+                      << "Usage:\n"
+                      << "  pathforge-engine [--ipc]     Read JSON from stdin, write response to stdout\n"
+                      << "  pathforge-engine --version   Print engine version\n"
+                      << "  pathforge-engine --help      Print this help message" << std::endl;
+            return 0;
+        }
     }
 
-    // Graph demonstration
-    GraphConfig config;
-    config.directed = false;
-    config.weighted = true;
-    Graph g(config);
-
-    g.addNode("A", "Alpha", 0.0, 0.0);
-    g.addNode("B", "Beta", 10.0, 5.0);
-    g.addNode("C", "Gamma", 20.0, 0.0);
-    g.addEdge("A", "B", 4.2);
-    g.addEdge("B", "C", 3.8);
-
-    std::cout << "Initialized graph: " << g.getVertexCount() << " vertices, "
-              << g.getEdgeCount() << " edges." << std::endl;
-
-    // BFS execution
-    AlgorithmResult bfsRes = BFS::run(g, "A", "C");
-    std::cout << "BFS (A -> C): Found=" << std::boolalpha << bfsRes.found
-              << ", Cost=" << bfsRes.cost
-              << ", Visited=" << bfsRes.metrics.nodesVisited
-              << ", Time=" << bfsRes.metrics.executionTimeMs << "ms" << std::endl;
-
-    // DFS execution
-    AlgorithmResult dfsRes = DFS::run(g, "A", "C");
-    std::cout << "DFS (A -> C): Found=" << std::boolalpha << dfsRes.found
-              << ", Cost=" << dfsRes.cost
-              << ", Visited=" << dfsRes.metrics.nodesVisited
-              << ", Time=" << dfsRes.metrics.executionTimeMs << "ms" << std::endl;
-
-    // Dijkstra execution
-    AlgorithmResult dijkstraRes = Dijkstra::run(g, "A", "C");
-    std::cout << "Dijkstra (A -> C): Found=" << std::boolalpha << dijkstraRes.found
-              << ", Cost=" << dijkstraRes.cost
-              << ", Visited=" << dijkstraRes.metrics.nodesVisited
-              << ", Relaxations=" << dijkstraRes.metrics.edgeRelaxations
-              << ", Time=" << dijkstraRes.metrics.executionTimeMs << "ms" << std::endl;
-
-    // A* execution (Euclidean)
-    AStarOptions astarOptions(true, HeuristicType::EUCLIDEAN);
-    AlgorithmResult astarRes = AStar::run(g, "A", "C", astarOptions);
-    std::cout << "A* [Euclidean] (A -> C): Found=" << std::boolalpha << astarRes.found
-              << ", Cost=" << astarRes.cost
-              << ", Visited=" << astarRes.metrics.nodesVisited
-              << ", Relaxations=" << astarRes.metrics.edgeRelaxations
-              << ", Time=" << astarRes.metrics.executionTimeMs << "ms" << std::endl;
-
+    // Standard IPC execution: stream JSON from stdin to stdout
+    JsonBridge::processStream(std::cin, std::cout);
     return 0;
 }

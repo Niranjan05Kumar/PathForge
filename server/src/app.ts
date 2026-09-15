@@ -2,6 +2,8 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
+import { pathfindRouter } from './routes/pathfind';
+import { compareRouter } from './routes/compare';
 
 export const app = express();
 
@@ -27,6 +29,10 @@ app.get('/api/health', (_req: Request, res: Response) => {
     }
   });
 });
+
+// Algorithmic Laboratory Endpoints
+app.use('/api/pathfind', pathfindRouter);
+app.use('/api/compare', compareRouter);
 
 // Standard Error Envelope Middleware
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {

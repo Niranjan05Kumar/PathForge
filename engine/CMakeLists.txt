@@ -23,6 +23,7 @@ add_library(pathforge_core STATIC
     src/algorithm/Dijkstra.cpp
     src/algorithm/Heuristics.cpp
     src/algorithm/AStar.cpp
+    src/ipc/JsonBridge.cpp
 )
 
 target_include_directories(pathforge_core PUBLIC
