@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import {
   CanvasNode,
   CanvasEdge,
@@ -10,6 +10,8 @@ import {
 } from './types/graph';
 import { runPathfind, runCompare, checkHealth } from './services/api';
 import { GRAPH_PRESETS } from './utils/presets';
+import { usePlayback } from './hooks/usePlayback';
+import { TraceLogPanel } from './components/TraceLogPanel';
 
 type AlgorithmType = 'dijkstra' | 'astar' | 'bfs' | 'dfs';
 type HeuristicType = 'euclidean' | 'manhattan' | 'zero';
@@ -52,7 +54,7 @@ export const App: React.FC = () => {
   const [destinationNode, setDestinationNode] = useState<string>(defaultPreset.defaultTarget);
 
   // --- UI Modes & Selection ---
-  const [activeTab, setActiveTab] = useState<'telemetry' | 'comparison' | 'system'>('telemetry');
+  const [activeTab, setActiveTab] = useState<'telemetry' | 'comparison' | 'trace' | 'system'>('telemetry');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<CanvasTool>('select');
@@ -62,15 +64,31 @@ export const App: React.FC = () => {
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
 
-  // --- Execution, Telemetry & Playback State ---
+  // --- Execution & Results State ---
   const [result, setResult] = useState<PathfindResult | null>(null);
   const [compareResult, setCompareResult] = useState<CompareResult | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const [currentStepIndex, setCurrentStepIndex] = useState<number>(-1);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState<number>(300); // ms per step
+  // --- Phase 8: Stepped Playback Engine Hook ---
+  const {
+    currentStepIndex,
+    isPlaying,
+    playbackSpeed,
+    pause,
+    togglePlay,
+    stepForward,
+    stepBackward,
+    jumpToStart,
+    jumpToEnd,
+    seek,
+    reset: resetPlayback,
+    setSpeed,
+    initializeTrace,
+  } = usePlayback({
+    totalSteps: result?.steps ? result.steps.length : 0,
+    initialSpeed: 250,
+  });
 
   // --- Preset Switching ---
   const handleLoadPreset = (presetId: string) => {
@@ -89,10 +107,9 @@ export const App: React.FC = () => {
   };
 
   const handleResetExecution = () => {
-    setIsPlaying(false);
+    resetPlayback();
     setResult(null);
     setCompareResult(null);
-    setCurrentStepIndex(-1);
     setErrorMessage(null);
     setSelectedNodeId(null);
     setSelectedEdgeId(null);
@@ -100,10 +117,10 @@ export const App: React.FC = () => {
   };
 
   // --- Execute Native C++ Algorithm (/api/pathfind) ---
-  const handleRunAlgorithm = async () => {
+  const handleRunAlgorithm = async (autoPlay: boolean = true) => {
     setIsLoading(true);
     setErrorMessage(null);
-    setIsPlaying(false);
+    resetPlayback();
 
     const payload: PathfindRequest = {
       algorithm: selectedAlgorithm,
@@ -129,7 +146,7 @@ export const App: React.FC = () => {
     if (res.success && res.data) {
       setResult(res.data);
       setActiveTab('telemetry');
-      setCurrentStepIndex(res.data.steps.length > 0 ? res.data.steps.length - 1 : -1);
+      initializeTrace(res.data.steps.length, autoPlay);
     } else {
       setErrorMessage(res.error?.message || 'Algorithm execution failed.');
       setResult(null);
@@ -140,7 +157,7 @@ export const App: React.FC = () => {
   const handleRunComparison = async () => {
     setIsLoading(true);
     setErrorMessage(null);
-    setIsPlaying(false);
+    resetPlayback();
 
     const payload: CompareRequest = {
       algorithms: [
@@ -174,51 +191,43 @@ export const App: React.FC = () => {
     }
   };
 
-  // --- Animation Playback Timer ---
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    if (isPlaying && result && result.steps.length > 0) {
-      if (currentStepIndex >= result.steps.length - 1) {
-        setIsPlaying(false);
-      } else {
-        timer = setTimeout(() => {
-          setCurrentStepIndex((prev) => prev + 1);
-        }, playbackSpeed);
-      }
-    }
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, [isPlaying, currentStepIndex, result, playbackSpeed]);
-
-  const handlePlay = () => {
+  const handlePlayClick = useCallback(() => {
     if (!result) {
-      handleRunAlgorithm();
-    } else if (currentStepIndex >= result.steps.length - 1) {
-      setCurrentStepIndex(0);
-      setIsPlaying(true);
+      handleRunAlgorithm(true);
     } else {
-      setIsPlaying(true);
+      togglePlay();
     }
-  };
+  }, [result, togglePlay, handleRunAlgorithm]);
 
-  const handlePause = () => setIsPlaying(false);
+  // --- Keyboard Shortcuts Navigation ---
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA')) {
+        return;
+      }
 
-  const handleNextStep = () => {
-    setIsPlaying(false);
-    if (!result) {
-      handleRunAlgorithm();
-    } else if (currentStepIndex < result.steps.length - 1) {
-      setCurrentStepIndex((prev) => prev + 1);
-    }
-  };
+      if (e.code === 'Space') {
+        e.preventDefault();
+        handlePlayClick();
+      } else if (e.code === 'ArrowRight') {
+        e.preventDefault();
+        stepForward();
+      } else if (e.code === 'ArrowLeft') {
+        e.preventDefault();
+        stepBackward();
+      } else if (e.code === 'Home') {
+        e.preventDefault();
+        jumpToStart();
+      } else if (e.code === 'End') {
+        e.preventDefault();
+        jumpToEnd();
+      }
+    };
 
-  const handlePrevStep = () => {
-    setIsPlaying(false);
-    if (currentStepIndex > 0) {
-      setCurrentStepIndex((prev) => prev - 1);
-    }
-  };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handlePlayClick, stepForward, stepBackward, jumpToStart, jumpToEnd]);
 
   // --- Derived Step & Path States ---
   const currentStep: TraceStep | null = useMemo(() => {
@@ -425,6 +434,28 @@ export const App: React.FC = () => {
               Workspace
             </button>
             <button
+              onClick={() => setActiveTab('trace')}
+              className={activeTab === 'trace' ? 'tab-active' : 'tab-inactive'}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <span>Step Trace</span>
+              {result?.steps && result.steps.length > 0 && (
+                <span
+                  style={{
+                    fontSize: '9px',
+                    fontFamily: 'var(--font-mono)',
+                    padding: '1px 5px',
+                    borderRadius: '10px',
+                    backgroundColor: activeTab === 'trace' ? 'var(--accent-primary)' : 'var(--bg-elevated)',
+                    color: activeTab === 'trace' ? '#111315' : 'var(--accent-primary)',
+                    fontWeight: 700,
+                  }}
+                >
+                  {result.steps.length}
+                </span>
+              )}
+            </button>
+            <button
               onClick={() => setActiveTab('comparison')}
               className={activeTab === 'comparison' ? 'tab-active' : 'tab-inactive'}
             >
@@ -615,7 +646,7 @@ export const App: React.FC = () => {
           {/* Section: Action Buttons */}
           <div style={{ padding: '14px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <button
-              onClick={handleRunAlgorithm}
+              onClick={() => handleRunAlgorithm(true)}
               disabled={isLoading || nodes.length === 0}
               className="btn-primary"
               style={{ width: '100%', height: '32px' }}
@@ -863,17 +894,24 @@ export const App: React.FC = () => {
                   ((currentStep.nodeId === edge.source && currentStep.targetId === edge.target) ||
                     (!isDirected && currentStep.nodeId === edge.target && currentStep.targetId === edge.source));
 
+                const isRelaxed =
+                  currentStep?.action === 'relax_edge' &&
+                  ((currentStep.nodeId === edge.source && currentStep.targetId === edge.target) ||
+                    (!isDirected && currentStep.nodeId === edge.target && currentStep.targetId === edge.source));
+
                 const isSelected = selectedEdgeId === edge.id;
 
                 const strokeColor = isPathEdge
                   ? 'var(--accent-primary)'
+                  : isRelaxed
+                  ? 'var(--color-success)'
                   : isExamined
                   ? 'var(--color-info)'
                   : isSelected
                   ? 'var(--text-primary)'
                   : 'var(--border)';
 
-                const strokeWidth = isPathEdge ? 3.5 : isExamined || isSelected ? 2.5 : 1.5;
+                const strokeWidth = isPathEdge ? 3.5 : isRelaxed ? 3.0 : isExamined || isSelected ? 2.5 : 1.5;
 
                 const midX = (sNode.x + tNode.x) / 2;
                 const midY = (sNode.y + tNode.y) / 2;
@@ -895,8 +933,9 @@ export const App: React.FC = () => {
                       y2={tNode.y}
                       stroke={strokeColor}
                       strokeWidth={strokeWidth}
+                      className={isRelaxed ? 'anim-edge-relax' : undefined}
                       markerEnd={isDirected ? (isPathEdge ? 'url(#arrow-path)' : 'url(#arrow)') : undefined}
-                      strokeDasharray={isExamined && !isPathEdge ? '4 2' : undefined}
+                      strokeDasharray={isExamined && !isPathEdge && !isRelaxed ? '4 2' : undefined}
                     />
 
                     {isWeighted && (
@@ -912,13 +951,13 @@ export const App: React.FC = () => {
                           height="18"
                           rx="3"
                           fill="var(--bg-surface)"
-                          stroke={isPathEdge ? 'var(--accent-primary)' : isSelected ? 'var(--text-primary)' : 'var(--border)'}
+                          stroke={isPathEdge ? 'var(--accent-primary)' : isRelaxed ? 'var(--color-success)' : isSelected ? 'var(--text-primary)' : 'var(--border)'}
                           strokeWidth="1"
                         />
                         <text
                           textAnchor="middle"
                           dominantBaseline="central"
-                          fill={isPathEdge ? 'var(--accent-primary)' : 'var(--text-secondary)'}
+                          fill={isPathEdge ? 'var(--accent-primary)' : isRelaxed ? 'var(--color-success)' : 'var(--text-secondary)'}
                           fontFamily="var(--font-mono)"
                           fontSize="10"
                           fontWeight="500"
@@ -954,6 +993,7 @@ export const App: React.FC = () => {
                   fillColor = 'var(--node-current)';
                   borderColor = 'var(--accent-primary)';
                   textColor = '#111315';
+                  badgeText = 'C';
                 } else if (isSource) {
                   fillColor = 'var(--node-source)';
                   borderColor = 'var(--accent-hover)';
@@ -968,10 +1008,12 @@ export const App: React.FC = () => {
                   fillColor = 'var(--node-frontier)';
                   borderColor = '#79C0FF';
                   textColor = '#111315';
+                  badgeText = 'F';
                 } else if (isVisited) {
                   fillColor = 'var(--node-visited)';
                   borderColor = '#6E7681';
                   textColor = '#F0F6FC';
+                  badgeText = 'V';
                 }
 
                 if (isSelected) {
@@ -985,12 +1027,34 @@ export const App: React.FC = () => {
                     onMouseDown={(e) => handleMouseDownNode(node.id, e)}
                     style={{ cursor: activeTool === 'add_edge' ? 'pointer' : 'grab' }}
                   >
+                    {/* Current Node pulse halo */}
+                    {isCurrent && (
+                      <circle
+                        className="anim-pulse-current"
+                        r="17"
+                        fill="none"
+                        stroke="var(--accent-primary)"
+                        strokeWidth="2"
+                      />
+                    )}
+
+                    {/* Frontier breathing halo */}
+                    {isFrontier && !isCurrent && !isPath && (
+                      <circle
+                        className="anim-pulse-frontier"
+                        r="15"
+                        fill="none"
+                        stroke="var(--color-info)"
+                        strokeWidth="1.5"
+                      />
+                    )}
+
                     {/* Outer glow ring for selected or path node */}
-                    {(isSelected || isPath || isCurrent) && (
+                    {(isSelected || isPath) && !isCurrent && (
                       <circle
                         r="18"
                         fill="none"
-                        stroke={isPath ? 'var(--accent-primary)' : isSelected ? 'var(--text-primary)' : 'var(--accent-hover)'}
+                        stroke={isPath ? 'var(--accent-primary)' : 'var(--text-primary)'}
                         strokeWidth="1.5"
                         opacity="0.6"
                       />
@@ -1160,8 +1224,17 @@ export const App: React.FC = () => {
               {/* Event Step Inspector */}
               {currentStep && (
                 <div>
-                  <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-                    Step Inspector ({currentStepIndex + 1}/{result?.steps.length})
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Step Inspector ({currentStepIndex + 1}/{result?.steps.length})
+                    </div>
+                    <button
+                      onClick={() => setActiveTab('trace')}
+                      className="btn-ghost"
+                      style={{ height: '20px', padding: '0 6px', fontSize: '10px', color: 'var(--accent-primary)' }}
+                    >
+                      View Full Trace →
+                    </button>
                   </div>
                   <div
                     style={{
@@ -1185,6 +1258,14 @@ export const App: React.FC = () => {
                 </div>
               )}
             </div>
+          )}
+
+          {activeTab === 'trace' && (
+            <TraceLogPanel
+              steps={result?.steps || []}
+              currentStepIndex={currentStepIndex}
+              onSelectStep={seek}
+            />
           )}
 
           {activeTab === 'comparison' && (
@@ -1335,48 +1416,73 @@ export const App: React.FC = () => {
         }}
       >
         {/* Playback Step Control Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <button
-            onClick={handlePrevStep}
+            onClick={jumpToStart}
             disabled={!result || currentStepIndex <= 0}
             className="btn-ghost"
-            style={{ height: '30px', padding: '0 10px', fontSize: '11px' }}
+            style={{ height: '30px', padding: '0 8px', fontSize: '11px' }}
+            title="Jump to Start (Home)"
           >
-            ⏮ Step
+            ⏮ First
+          </button>
+
+          <button
+            onClick={stepBackward}
+            disabled={!result || currentStepIndex <= 0}
+            className="btn-ghost"
+            style={{ height: '30px', padding: '0 8px', fontSize: '11px' }}
+            title="Step Backward (Left Arrow)"
+          >
+            ◀ Step
           </button>
 
           {isPlaying ? (
             <button
-              onClick={handlePause}
+              onClick={pause}
               className="btn-primary"
               style={{ height: '30px', padding: '0 16px', fontSize: '11px' }}
+              title="Pause (Space)"
             >
               ⏸ Pause
             </button>
           ) : (
             <button
-              onClick={handlePlay}
+              onClick={handlePlayClick}
               disabled={isLoading || nodes.length === 0}
               className="btn-primary"
               style={{ height: '30px', padding: '0 16px', fontSize: '11px' }}
+              title="Play (Space)"
             >
               ▶ Play
             </button>
           )}
 
           <button
-            onClick={handleNextStep}
+            onClick={stepForward}
             disabled={!result || (currentStepIndex >= (result.steps.length - 1))}
             className="btn-ghost"
-            style={{ height: '30px', padding: '0 10px', fontSize: '11px' }}
+            style={{ height: '30px', padding: '0 8px', fontSize: '11px' }}
+            title="Step Forward (Right Arrow)"
           >
-            Step ⏭
+            Step ▶
+          </button>
+
+          <button
+            onClick={jumpToEnd}
+            disabled={!result || (currentStepIndex >= (result.steps.length - 1))}
+            className="btn-ghost"
+            style={{ height: '30px', padding: '0 8px', fontSize: '11px' }}
+            title="Jump to End (End)"
+          >
+            Last ⏭
           </button>
 
           <button
             onClick={handleResetExecution}
             className="btn-ghost"
-            style={{ height: '30px', padding: '0 10px', fontSize: '11px', color: 'var(--text-muted)' }}
+            style={{ height: '30px', padding: '0 8px', fontSize: '11px', color: 'var(--text-muted)' }}
+            title="Reset Execution"
           >
             ↺ Reset
           </button>
@@ -1384,24 +1490,21 @@ export const App: React.FC = () => {
           <div style={{ height: '18px', width: '1px', backgroundColor: 'var(--border)', margin: '0 4px' }} />
 
           {/* Monospace Step Indicator */}
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-secondary)' }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-secondary)', minWidth: '95px' }}>
             STEP {currentStepIndex >= 0 ? String(currentStepIndex + 1).padStart(2, '0') : '00'} /{' '}
             {result?.steps ? String(result.steps.length).padStart(2, '0') : '00'}
           </div>
         </div>
 
         {/* Playback Scrubber */}
-        <div style={{ flex: 1, maxWidth: '400px', margin: '0 24px' }}>
+        <div style={{ flex: 1, maxWidth: '420px', margin: '0 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <input
             type="range"
             min={0}
             max={result?.steps ? Math.max(0, result.steps.length - 1) : 0}
             value={currentStepIndex >= 0 ? currentStepIndex : 0}
             disabled={!result || result.steps.length === 0}
-            onChange={(e) => {
-              setIsPlaying(false);
-              setCurrentStepIndex(Number(e.target.value));
-            }}
+            onChange={(e) => seek(Number(e.target.value))}
             style={{ width: '100%', accentColor: 'var(--accent-primary)', cursor: 'pointer' }}
           />
         </div>
@@ -1409,18 +1512,19 @@ export const App: React.FC = () => {
         {/* Discrete Playback Speed Buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           {[
-            { label: '0.5x', speed: 600 },
-            { label: '1x', speed: 300 },
-            { label: '2x', speed: 150 },
-            { label: 'Max', speed: 50 },
+            { label: '0.25x', speed: 800 },
+            { label: '0.5x', speed: 500 },
+            { label: '1x', speed: 250 },
+            { label: '2x', speed: 120 },
+            { label: 'Max', speed: 25 },
           ].map((item) => (
             <button
               key={item.label}
-              onClick={() => setPlaybackSpeed(item.speed)}
+              onClick={() => setSpeed(item.speed)}
               className={playbackSpeed === item.speed ? 'btn-secondary' : 'btn-ghost'}
               style={{
                 height: '24px',
-                padding: '0 8px',
+                padding: '0 7px',
                 fontSize: '10px',
                 fontFamily: 'var(--font-mono)',
                 borderColor: playbackSpeed === item.speed ? 'var(--accent-primary)' : undefined,

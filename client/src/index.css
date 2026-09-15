@@ -219,3 +219,62 @@ select option {
     linear-gradient(to bottom, rgba(48, 53, 58, 0.35) 1px, transparent 1px);
   background-size: 24px 24px;
 }
+
+/* --- Playback & Stepped Animation Keyframes --- */
+@keyframes pulse-frontier {
+  0% {
+    r: 15;
+    opacity: 0.8;
+  }
+  50% {
+    r: 22;
+    opacity: 0.2;
+  }
+  100% {
+    r: 15;
+    opacity: 0.8;
+  }
+}
+
+@keyframes pulse-current-halo {
+  0% {
+    r: 16;
+    opacity: 0.9;
+  }
+  50% {
+    r: 24;
+    opacity: 0.3;
+  }
+  100% {
+    r: 16;
+    opacity: 0.9;
+  }
+}
+
+@keyframes pulse-edge-relax {
+  0% {
+    stroke-width: 2.5;
+    stroke: var(--color-success);
+  }
+  50% {
+    stroke-width: 4.5;
+    stroke: var(--accent-hover);
+  }
+  100% {
+    stroke-width: 2.5;
+    stroke: var(--color-success);
+  }
+}
+
+.anim-pulse-frontier {
+  animation: pulse-frontier 1.8s ease-in-out infinite;
+}
+
+.anim-pulse-current {
+  animation: pulse-current-halo 1.2s ease-in-out infinite;
+}
+
+.anim-edge-relax {
+  animation: pulse-edge-relax 0.8s ease-in-out infinite;
+}
+
