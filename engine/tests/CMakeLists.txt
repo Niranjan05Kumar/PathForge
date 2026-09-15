@@ -25,8 +25,16 @@ target_link_libraries(engine_dfs_test
         GTest::gtest_main
 )
 
+add_executable(engine_dijkstra_test DijkstraTest.cpp)
+target_link_libraries(engine_dijkstra_test
+    PRIVATE
+        pathforge_core
+        GTest::gtest_main
+)
+
 include(GoogleTest)
 gtest_discover_tests(engine_smoke_test)
 gtest_discover_tests(engine_graph_test)
 gtest_discover_tests(engine_bfs_test)
 gtest_discover_tests(engine_dfs_test)
+gtest_discover_tests(engine_dijkstra_test)

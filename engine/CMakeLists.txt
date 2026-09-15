@@ -20,6 +20,7 @@ add_library(pathforge_core STATIC
     src/algorithm/PathReconstruction.cpp
     src/algorithm/BFS.cpp
     src/algorithm/DFS.cpp
+    src/algorithm/Dijkstra.cpp
 )
 
 target_include_directories(pathforge_core PUBLIC

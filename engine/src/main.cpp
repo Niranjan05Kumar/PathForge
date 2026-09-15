@@ -2,6 +2,7 @@
 #include "graph/Graph.h"
 #include "algorithm/BFS.h"
 #include "algorithm/DFS.h"
+#include "algorithm/Dijkstra.h"
 
 int main(int argc, char* argv[]) {
     std::cout << "PathForge Engine v0.1.0 (DSA Core)" << std::endl;
@@ -37,6 +38,14 @@ int main(int argc, char* argv[]) {
               << ", Cost=" << dfsRes.cost
               << ", Visited=" << dfsRes.metrics.nodesVisited
               << ", Time=" << dfsRes.metrics.executionTimeMs << "ms" << std::endl;
+
+    // Dijkstra execution
+    AlgorithmResult dijkstraRes = Dijkstra::run(g, "A", "C");
+    std::cout << "Dijkstra (A -> C): Found=" << std::boolalpha << dijkstraRes.found
+              << ", Cost=" << dijkstraRes.cost
+              << ", Visited=" << dijkstraRes.metrics.nodesVisited
+              << ", Relaxations=" << dijkstraRes.metrics.edgeRelaxations
+              << ", Time=" << dijkstraRes.metrics.executionTimeMs << "ms" << std::endl;
 
     return 0;
 }
