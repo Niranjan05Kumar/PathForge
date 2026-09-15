@@ -17,6 +17,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 # Core engine library
 add_library(pathforge_core STATIC
     src/graph/Graph.cpp
+    src/algorithm/PathReconstruction.cpp
+    src/algorithm/BFS.cpp
+    src/algorithm/DFS.cpp
 )
 
 target_include_directories(pathforge_core PUBLIC

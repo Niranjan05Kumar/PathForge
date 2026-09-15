@@ -1,5 +1,7 @@
 #include <iostream>
 #include "graph/Graph.h"
+#include "algorithm/BFS.h"
+#include "algorithm/DFS.h"
 
 int main(int argc, char* argv[]) {
     std::cout << "PathForge Engine v0.1.0 (DSA Core)" << std::endl;
@@ -7,7 +9,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Argument: " << argv[1] << std::endl;
     }
 
-    // Quick demonstration of core graph data structure
+    // Graph demonstration
     GraphConfig config;
     config.directed = false;
     config.weighted = true;
@@ -19,8 +21,22 @@ int main(int argc, char* argv[]) {
     g.addEdge("A", "B", 4.2);
     g.addEdge("B", "C", 3.8);
 
-    std::cout << "Initialized graph with " << g.getVertexCount() << " vertices and "
+    std::cout << "Initialized graph: " << g.getVertexCount() << " vertices, "
               << g.getEdgeCount() << " edges." << std::endl;
+
+    // BFS execution
+    AlgorithmResult bfsRes = BFS::run(g, "A", "C");
+    std::cout << "BFS (A -> C): Found=" << std::boolalpha << bfsRes.found
+              << ", Cost=" << bfsRes.cost
+              << ", Visited=" << bfsRes.metrics.nodesVisited
+              << ", Time=" << bfsRes.metrics.executionTimeMs << "ms" << std::endl;
+
+    // DFS execution
+    AlgorithmResult dfsRes = DFS::run(g, "A", "C");
+    std::cout << "DFS (A -> C): Found=" << std::boolalpha << dfsRes.found
+              << ", Cost=" << dfsRes.cost
+              << ", Visited=" << dfsRes.metrics.nodesVisited
+              << ", Time=" << dfsRes.metrics.executionTimeMs << "ms" << std::endl;
 
     return 0;
 }
