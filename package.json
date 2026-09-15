@@ -1,0 +1,33 @@
+{
+  "name": "pathforge",
+  "version": "0.1.0",
+  "description": "PathForge — Interactive Graph Pathfinding & Optimization Engine",
+  "private": true,
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "build:engine": "cmake -S engine -B engine/build -G Ninja -DCMAKE_BUILD_TYPE=Release && cmake --build engine/build",
+    "test:engine": "ctest --test-dir engine/build --output-on-failure",
+    "build:server": "npm --prefix server run build",
+    "test:server": "npm --prefix server test",
+    "build:client": "npm --prefix client run build",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "build": "npm run build:server && npm run build:client",
+    "test": "npm run test:server"
+  },
+  "keywords": [
+    "pathfinding",
+    "algorithms",
+    "graph",
+    "dijkstra",
+    "astar",
+    "cpp",
+    "react",
+    "express"
+  ],
+  "author": "",
+  "license": "MIT"
+}

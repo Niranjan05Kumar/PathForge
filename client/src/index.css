@@ -1,0 +1,221 @@
+:root {
+  /* Base Surfaces */
+  --bg-primary: #111315;
+  --bg-surface: #1A1D20;
+  --bg-elevated: #202428;
+  --border: #30353A;
+  --border-subtle: #24292E;
+  --border-active: #484F58;
+  
+  /* Typography */
+  --text-primary: #F2F4F5;
+  --text-secondary: #9AA1A8;
+  --text-muted: #6F767D;
+
+  /* Brand Accent: Graphite + Amber */
+  --accent-primary: #F2A93B;
+  --accent-hover: #FFB84D;
+  --accent-muted: #6F5122;
+  --accent-subtle: rgba(242, 169, 59, 0.12);
+
+  /* Semantic Status Colors */
+  --color-success: #3FB950;
+  --color-error: #E5534B;
+  --color-warning: #D29922;
+  --color-info: #58A6FF;
+
+  /* Graph Visualization States */
+  --node-default: #30353A;
+  --node-default-border: #484F58;
+  --node-source: #F2A93B;
+  --node-destination: #F2F4F5;
+  --node-destination-border: #F2A93B;
+  --node-frontier: #58A6FF;
+  --node-visited: #59636D;
+  --node-current: #FFB84D;
+  --node-path: #F2A93B;
+  --node-error: #E5534B;
+
+  /* Typography Stacks */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Radii & Metrics (Engineering/Console feel) */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  
+  --control-height-sm: 26px;
+  --control-height: 32px;
+  --control-height-lg: 38px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: var(--radius-sm);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-active);
+}
+
+/* Controls Base */
+button {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0 10px;
+  height: var(--control-height);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Button Variants */
+.btn-primary {
+  background-color: var(--accent-primary);
+  color: #111315;
+  border-color: var(--accent-primary);
+  font-weight: 600;
+}
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-secondary {
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--bg-elevated);
+  border-color: var(--border-active);
+}
+
+.btn-destructive {
+  background-color: transparent;
+  color: var(--color-error);
+  border-color: rgba(229, 83, 75, 0.4);
+}
+.btn-destructive:hover:not(:disabled) {
+  background-color: rgba(229, 83, 75, 0.12);
+  border-color: var(--color-error);
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: var(--text-secondary);
+  border-color: transparent;
+}
+.btn-ghost:hover:not(:disabled) {
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+/* Form Controls */
+select, input[type="text"], input[type="number"] {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  height: var(--control-height);
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0 8px;
+  outline: none;
+  transition: border-color 0.12s ease;
+}
+
+select:focus, input:focus {
+  border-color: var(--accent-primary);
+}
+
+select option {
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+/* Monospace Utilities */
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Technical Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background-color: var(--bg-surface);
+  color: var(--text-secondary);
+}
+
+.badge-amber {
+  background-color: var(--accent-subtle);
+  border-color: var(--accent-muted);
+  color: var(--accent-primary);
+}
+
+.badge-success {
+  background-color: rgba(63, 185, 80, 0.1);
+  border-color: rgba(63, 185, 80, 0.3);
+  color: var(--color-success);
+}
+
+.badge-info {
+  background-color: rgba(88, 166, 255, 0.1);
+  border-color: rgba(88, 166, 255, 0.3);
+  color: var(--color-info);
+}
+
+/* Canvas Grid Pattern */
+.workbench-grid {
+  background-color: var(--bg-primary);
+  background-image: 
+    linear-gradient(to right, rgba(48, 53, 58, 0.35) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(48, 53, 58, 0.35) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
