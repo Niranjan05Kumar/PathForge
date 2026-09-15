@@ -38,6 +38,27 @@ app.use('/api/compare', compareRouter);
 app.use('/api/benchmark', benchmarkRouter);
 app.use('/api/graph', graphRouter);
 
+// Serve static client bundle if client/dist exists (production mode)
+const possibleClientDistPaths = [
+  path.resolve(__dirname, '../../../client/dist'),
+  path.resolve(__dirname, '../../client/dist'),
+  path.resolve(__dirname, '../client/dist'),
+  path.resolve(process.cwd(), 'client/dist')
+];
+
+for (const p of possibleClientDistPaths) {
+  if (fs.existsSync(p)) {
+    app.use(express.static(p));
+    app.get('*', (req: Request, res: Response, next: NextFunction) => {
+      if (req.path.startsWith('/api')) {
+        return next();
+      }
+      res.sendFile(path.join(p, 'index.html'));
+    });
+    break;
+  }
+}
+
 // Standard Error Envelope Middleware
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error('[Unhandled Error]:', err);
@@ -49,3 +70,4 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     }
   });
 });
+

@@ -13,6 +13,8 @@ import { GRAPH_PRESETS } from './utils/presets';
 import { usePlayback } from './hooks/usePlayback';
 import { TraceLogPanel } from './components/TraceLogPanel';
 import { BenchmarkDashboard } from './components/BenchmarkDashboard';
+import { parseAndValidateGraphJson } from './utils/import';
+import { exportGraphJson, exportExperimentJson } from './utils/export';
 
 type AlgorithmType = 'dijkstra' | 'astar' | 'bfs' | 'dfs';
 type HeuristicType = 'euclidean' | 'manhattan' | 'zero';
@@ -68,9 +70,10 @@ export const App: React.FC = () => {
   const [genNodes, setGenNodes] = useState<number>(25);
   const [isGeneratingCanvas, setIsGeneratingCanvas] = useState<boolean>(false);
 
-  // --- Node Dragging ---
+  // --- Node Dragging & File Import ---
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // --- Execution & Results State ---
   const [result, setResult] = useState<PathfindResult | null>(null);
@@ -179,6 +182,50 @@ export const App: React.FC = () => {
     } finally {
       setIsGeneratingCanvas(false);
     }
+  };
+
+  // --- File Import & Export Handlers ---
+  const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      const parseRes = parseAndValidateGraphJson(content);
+      if (parseRes.success && parseRes.nodes && parseRes.edges) {
+        handleLoadSyntheticGraph(
+          parseRes.nodes,
+          parseRes.edges,
+          parseRes.directed ?? false,
+          parseRes.weighted ?? true
+        );
+        setErrorMessage(null);
+      } else {
+        setErrorMessage(parseRes.error || 'Failed to parse graph JSON file.');
+      }
+    };
+    reader.onerror = () => {
+      setErrorMessage('Failed to read uploaded file from local filesystem.');
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  };
+
+  const handleExportGraph = () => {
+    if (nodes.length === 0) {
+      setErrorMessage('Cannot export empty graph.');
+      return;
+    }
+    exportGraphJson(nodes, edges, isDirected, isWeighted);
+  };
+
+  const handleExportExperiment = () => {
+    if (!result) {
+      setErrorMessage('No active experiment results to export.');
+      return;
+    }
+    exportExperimentJson(nodes, edges, isDirected, isWeighted, result);
   };
 
   // --- Execute Native C++ Algorithm (/api/pathfind) ---
@@ -651,20 +698,10 @@ export const App: React.FC = () => {
       ) : (
         <>
           {/* --- Main 3-Column Workbench --- */}
-          <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+          <div className="workbench-layout">
         
-        {/* --- Left Column: Algorithm & Graph Controls (280px) --- */}
-        <aside
-          style={{
-            width: '280px',
-            borderRight: '1px solid var(--border)',
-            backgroundColor: 'var(--bg-surface)',
-            display: 'flex',
-            flexDirection: 'column',
-            overflowY: 'auto',
-            zIndex: 5,
-          }}
-        >
+        {/* --- Left Column: Algorithm & Graph Controls --- */}
+        <aside className="workbench-controls-panel">
           {/* Section: Algorithm Selector */}
           <div style={{ padding: '14px', borderBottom: '1px solid var(--border-subtle)' }}>
             <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
@@ -945,19 +982,54 @@ export const App: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {/* Section: Graph Portability (Import / Export) */}
+          <div style={{ padding: '14px', borderTop: '1px solid var(--border-subtle)' }}>
+            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+              Graph Portability
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept=".json"
+                onChange={handleFileImport}
+                style={{ display: 'none' }}
+                aria-label="Upload JSON Graph File"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="btn-secondary"
+                style={{ height: '28px', fontSize: '11px' }}
+                title="Import graph structure from a local JSON file"
+              >
+                📁 Import Graph (JSON)
+              </button>
+              <button
+                onClick={handleExportGraph}
+                disabled={nodes.length === 0}
+                className="btn-secondary"
+                style={{ height: '28px', fontSize: '11px' }}
+                title="Export active canvas graph to a JSON file"
+              >
+                💾 Export Graph (JSON)
+              </button>
+              {result && (
+                <button
+                  onClick={handleExportExperiment}
+                  className="btn-secondary"
+                  style={{ height: '28px', fontSize: '11px', borderColor: 'var(--accent-muted)' }}
+                  title="Export analytical experiment snapshot with metrics and path to JSON"
+                >
+                  📋 Export Experiment (JSON)
+                </button>
+              )}
+            </div>
+          </div>
         </aside>
 
         {/* --- Center Column: Interactive Graph Canvas --- */}
-        <main
-          style={{
-            flex: 1,
-            position: 'relative',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            backgroundColor: 'var(--bg-primary)',
-          }}
-        >
+        <main className="workbench-canvas-panel">
           {/* Sub-Header: Node counts & State Legend */}
           <div
             style={{
@@ -1271,18 +1343,8 @@ export const App: React.FC = () => {
           </div>
         </main>
 
-        {/* --- Right Column: Telemetry & Results Console (320px) --- */}
-        <aside
-          style={{
-            width: '320px',
-            borderLeft: '1px solid var(--border)',
-            backgroundColor: 'var(--bg-surface)',
-            display: 'flex',
-            flexDirection: 'column',
-            overflowY: 'auto',
-            zIndex: 5,
-          }}
-        >
+        {/* --- Right Column: Telemetry & Results Matrix --- */}
+        <aside className="workbench-results-panel">
           {activeTab === 'telemetry' && (
             <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
