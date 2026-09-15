@@ -3,6 +3,7 @@
 #include "algorithm/BFS.h"
 #include "algorithm/DFS.h"
 #include "algorithm/Dijkstra.h"
+#include "algorithm/AStar.h"
 
 int main(int argc, char* argv[]) {
     std::cout << "PathForge Engine v0.1.0 (DSA Core)" << std::endl;
@@ -46,6 +47,15 @@ int main(int argc, char* argv[]) {
               << ", Visited=" << dijkstraRes.metrics.nodesVisited
               << ", Relaxations=" << dijkstraRes.metrics.edgeRelaxations
               << ", Time=" << dijkstraRes.metrics.executionTimeMs << "ms" << std::endl;
+
+    // A* execution (Euclidean)
+    AStarOptions astarOptions(true, HeuristicType::EUCLIDEAN);
+    AlgorithmResult astarRes = AStar::run(g, "A", "C", astarOptions);
+    std::cout << "A* [Euclidean] (A -> C): Found=" << std::boolalpha << astarRes.found
+              << ", Cost=" << astarRes.cost
+              << ", Visited=" << astarRes.metrics.nodesVisited
+              << ", Relaxations=" << astarRes.metrics.edgeRelaxations
+              << ", Time=" << astarRes.metrics.executionTimeMs << "ms" << std::endl;
 
     return 0;
 }

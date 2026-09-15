@@ -4,6 +4,21 @@
 
 Graph::Graph(GraphConfig config) : config(config) {}
 
+int Graph::addNode(const std::string& id, const std::string& label) {
+    if (id.empty()) {
+        throw std::invalid_argument("Node ID cannot be empty.");
+    }
+    if (hasNode(id)) {
+        throw std::invalid_argument("Node '" + id + "' already exists in graph.");
+    }
+
+    int newIndex = static_cast<int>(nodes.size());
+    nodes.emplace_back(id, label);
+    nodeToIndex[id] = newIndex;
+    adjacencyList.emplace_back();
+    return newIndex;
+}
+
 int Graph::addNode(const std::string& id, const std::string& label, double x, double y) {
     if (id.empty()) {
         throw std::invalid_argument("Node ID cannot be empty.");
@@ -53,6 +68,7 @@ void Graph::updateNodeCoordinates(const std::string& id, double x, double y) {
     int idx = getNodeIndex(id);
     nodes[idx].x = x;
     nodes[idx].y = y;
+    nodes[idx].hasCoordinates = true;
 }
 
 bool Graph::removeNode(const std::string& id) {

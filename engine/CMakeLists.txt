@@ -21,6 +21,8 @@ add_library(pathforge_core STATIC
     src/algorithm/BFS.cpp
     src/algorithm/DFS.cpp
     src/algorithm/Dijkstra.cpp
+    src/algorithm/Heuristics.cpp
+    src/algorithm/AStar.cpp
 )
 
 target_include_directories(pathforge_core PUBLIC

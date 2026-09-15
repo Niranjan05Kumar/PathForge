@@ -30,7 +30,8 @@ public:
     bool isWeighted() const { return config.weighted; }
 
     // --- Vertex Operations ---
-    int addNode(const std::string& id, const std::string& label = "", double x = 0.0, double y = 0.0);
+    int addNode(const std::string& id, const std::string& label = "");
+    int addNode(const std::string& id, const std::string& label, double x, double y);
     bool hasNode(const std::string& id) const;
     int getNodeIndex(const std::string& id) const;
     const std::string& getNodeId(int index) const;
