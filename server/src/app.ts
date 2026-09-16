@@ -4,8 +4,6 @@ import path from 'path';
 import fs from 'fs';
 import { pathfindRouter } from './routes/pathfind';
 import { compareRouter } from './routes/compare';
-import { benchmarkRouter } from './routes/benchmark';
-import { graphRouter } from './routes/graph';
 
 export const app = express();
 
@@ -35,8 +33,6 @@ app.get('/api/health', (_req: Request, res: Response) => {
 // Algorithmic Laboratory Endpoints
 app.use('/api/pathfind', pathfindRouter);
 app.use('/api/compare', compareRouter);
-app.use('/api/benchmark', benchmarkRouter);
-app.use('/api/graph', graphRouter);
 
 // Serve static client bundle if client/dist exists (production mode)
 const possibleClientDistPaths = [

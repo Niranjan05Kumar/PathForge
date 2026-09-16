@@ -56,14 +56,14 @@ describe('POST /api/pathfind', () => {
     expect(res.body.data.path).toEqual(['A', 'B', 'C']);
   });
 
-  it('omits steps when benchmark mode is requested', async () => {
+  it('omits steps when recordTrace is false', async () => {
     const res = await request(app)
       .post('/api/pathfind')
       .send({
         algorithm: 'bfs',
         source: 'A',
         target: 'C',
-        mode: 'benchmark',
+        recordTrace: false,
         graph: sampleGraph
       });
 

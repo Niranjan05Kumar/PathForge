@@ -37,12 +37,12 @@ TEST(JsonBridgeTest, ValidDijkstraRequest) {
     EXPECT_FALSE(response["data"]["steps"].empty());
 }
 
-TEST(JsonBridgeTest, BenchmarkModeOmitsSteps) {
+TEST(JsonBridgeTest, TraceDisabledOmitsSteps) {
     json request = {
         {"algorithm", "bfs"},
         {"source", "A"},
         {"target", "B"},
-        {"mode", "benchmark"},
+        {"recordTrace", false},
         {"graph", {
             {"nodes", {{{"id", "A"}}, {{"id", "B"}}}},
             {"edges", {{{"source", "A"}, {"target", "B"}, {"weight", 1.0}}}}

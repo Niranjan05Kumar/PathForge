@@ -218,7 +218,7 @@ TEST(AStarTest, TraceRecordingEvents) {
     }
     EXPECT_TRUE(foundRelaxEvent);
 
-    // Benchmark mode: trace disabled
+    // Direct execution: trace disabled
     AStarOptions noTraceOptions(false, HeuristicType::EUCLIDEAN);
     AlgorithmResult withoutTrace = AStar::run(g, "A", "B", noTraceOptions);
     EXPECT_TRUE(withoutTrace.steps.empty());

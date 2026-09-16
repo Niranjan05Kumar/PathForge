@@ -41,8 +41,8 @@ export const GRAPH_PRESETS: GraphPreset[] = [
     ]
   },
   {
-    id: 'detour-benchmark',
-    name: 'Dijkstra Detour Benchmark',
+    id: 'detour-network',
+    name: 'Dijkstra Detour Network',
     description: 'Contrasts fewest hops (2 hops, weight 20) against lowest cost (4 hops, weight 4).',
     directed: true,
     weighted: true,

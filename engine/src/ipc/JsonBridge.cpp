@@ -5,8 +5,6 @@
 #include "algorithm/Dijkstra.h"
 #include "algorithm/AStar.h"
 #include "algorithm/Heuristics.h"
-#include "benchmark/Benchmark.h"
-#include "benchmark/GraphGenerator.h"
 #include <nlohmann/json.hpp>
 #include <sstream>
 #include <algorithm>
@@ -50,36 +48,6 @@ std::string JsonBridge::processString(const std::string& inputJson) {
         return makeError("INVALID_JSON", std::string("Malformed JSON: ") + e.what()).dump();
     }
 
-    std::string command = root.value("command", "");
-    if (command == "generate_graph" || root.contains("generate")) {
-        try {
-            const auto& genConfig = root.contains("graphConfig") ? root["graphConfig"] : (root.contains("generate") ? root["generate"] : root);
-            GraphGeneratorOptions opts;
-            opts.nodes = genConfig.value("nodes", 100);
-            opts.edges = genConfig.value("edges", 0);
-            opts.density = genConfig.value("density", 0.0);
-            opts.topology = genConfig.value("topology", "sparse");
-            opts.directed = genConfig.value("directed", false);
-            opts.weighted = genConfig.value("weighted", true);
-            opts.seed = (genConfig.contains("seed") && genConfig["seed"].is_number()) ? genConfig["seed"].get<uint64_t>() : 42ULL;
-            opts.minWeight = genConfig.value("minWeight", 1.0);
-            opts.maxWeight = genConfig.value("maxWeight", 10.0);
-
-            Graph g = GraphGenerator::generate(opts);
-            return GraphGenerator::toJson(g, opts.topology, opts.seed).dump();
-        } catch (const std::exception& e) {
-            return makeError("GENERATION_ERROR", e.what()).dump();
-        }
-    }
-
-    if (command == "benchmark" || root.contains("benchmark") || (root.contains("graphConfig") && root.contains("algorithms"))) {
-        try {
-            return Benchmark::processBenchmark(root).dump();
-        } catch (const std::exception& e) {
-            return makeError("BENCHMARK_ERROR", e.what()).dump();
-        }
-    }
-
     if (!root.contains("algorithm") || !root["algorithm"].is_string()) {
         return makeError("MISSING_FIELD", "Field 'algorithm' is required.").dump();
     }
@@ -96,8 +64,12 @@ std::string JsonBridge::processString(const std::string& inputJson) {
     std::string algorithm = toLower(root["algorithm"].get<std::string>());
     std::string source = root["source"].get<std::string>();
     std::string target = root["target"].get<std::string>();
-    std::string mode = root.value("mode", "visualize");
-    bool recordTrace = (mode != "benchmark");
+    
+    // Trace recording control: defaults to true for stepped visualization playback
+    bool recordTrace = true;
+    if (root.contains("recordTrace") && root["recordTrace"].is_boolean()) {
+        recordTrace = root["recordTrace"].get<bool>();
+    }
 
     const auto& graphJson = root["graph"];
     GraphConfig config;
@@ -110,48 +82,67 @@ std::string JsonBridge::processString(const std::string& inputJson) {
         return makeError("EMPTY_GRAPH", "Graph must contain at least one node.").dump();
     }
 
-    // Populate Nodes
-    for (const auto& nodeJson : graphJson["nodes"]) {
-        if (!nodeJson.contains("id") || !nodeJson["id"].is_string()) {
-            return makeError("INVALID_NODE", "Each node must have a valid string 'id'.").dump();
+    try {
+        // Populate Nodes
+        for (const auto& nodeJson : graphJson["nodes"]) {
+            if (!nodeJson.contains("id") || !nodeJson["id"].is_string()) {
+                return makeError("INVALID_NODE", "Each node must have a valid string 'id'.").dump();
+            }
+            std::string id = nodeJson["id"].get<std::string>();
+            std::string label = nodeJson.value("label", id);
+
+            if (nodeJson.contains("x") && nodeJson.contains("y") &&
+                nodeJson["x"].is_number() && nodeJson["y"].is_number()) {
+                double x = nodeJson["x"].get<double>();
+                double y = nodeJson["y"].get<double>();
+                graph.addNode(id, label, x, y);
+            } else {
+                graph.addNode(id, label);
+            }
         }
-        std::string id = nodeJson["id"].get<std::string>();
-        std::string label = nodeJson.value("label", id);
 
-        if (nodeJson.contains("x") && nodeJson.contains("y") &&
-            nodeJson["x"].is_number() && nodeJson["y"].is_number()) {
-            double x = nodeJson["x"].get<double>();
-            double y = nodeJson["y"].get<double>();
-            graph.addNode(id, label, x, y);
-        } else {
-            graph.addNode(id, label);
+        // Populate Edges
+        if (graphJson.contains("edges") && graphJson["edges"].is_array()) {
+            for (const auto& edgeJson : graphJson["edges"]) {
+                if (!edgeJson.contains("source") || !edgeJson.contains("target")) {
+                    return makeError("INVALID_EDGE", "Edge requires 'source' and 'target'.").dump();
+                }
+                std::string u = edgeJson["source"].get<std::string>();
+                std::string v = edgeJson["target"].get<std::string>();
+                double weight = edgeJson.value("weight", 1.0);
+
+                if (weight < 0.0) {
+                    return makeError("NEGATIVE_EDGE_WEIGHT",
+                        "Negative edge weight " + std::to_string(weight) + " is not supported.").dump();
+                }
+
+                if (!graph.hasNode(u)) {
+                    return makeError("INVALID_NODE", "Edge source node '" + u + "' does not exist.").dump();
+                }
+                if (!graph.hasNode(v)) {
+                    return makeError("INVALID_NODE", "Edge target node '" + v + "' does not exist.").dump();
+                }
+
+                graph.addEdge(u, v, weight);
+            }
         }
-    }
-
-    // Populate Edges
-    if (graphJson.contains("edges") && graphJson["edges"].is_array()) {
-        for (const auto& edgeJson : graphJson["edges"]) {
-            if (!edgeJson.contains("source") || !edgeJson.contains("target")) {
-                return makeError("INVALID_EDGE", "Edge requires 'source' and 'target'.").dump();
-            }
-            std::string u = edgeJson["source"].get<std::string>();
-            std::string v = edgeJson["target"].get<std::string>();
-            double weight = edgeJson.value("weight", 1.0);
-
-            if (weight < 0.0) {
-                return makeError("NEGATIVE_EDGE_WEIGHT",
-                    "Negative edge weight " + std::to_string(weight) + " is not supported.").dump();
-            }
-
-            if (!graph.hasNode(u)) {
-                return makeError("INVALID_NODE", "Edge source node '" + u + "' does not exist.").dump();
-            }
-            if (!graph.hasNode(v)) {
-                return makeError("INVALID_NODE", "Edge target node '" + v + "' does not exist.").dump();
-            }
-
-            graph.addEdge(u, v, weight);
+    } catch (const std::invalid_argument& e) {
+        std::string msg = e.what();
+        if (msg.find("already exists") != std::string::npos) {
+            return makeError("DUPLICATE_NODE", msg).dump();
         }
+        if (msg.find("Duplicate edge") != std::string::npos) {
+            return makeError("DUPLICATE_EDGE", msg).dump();
+        }
+        if (msg.find("Self-loops") != std::string::npos) {
+            return makeError("SELF_LOOP_DISALLOWED", msg).dump();
+        }
+        if (msg.find("Negative") != std::string::npos) {
+            return makeError("NEGATIVE_EDGE_WEIGHT", msg).dump();
+        }
+        return makeError("INVALID_GRAPH", msg).dump();
+    } catch (const std::exception& e) {
+        return makeError("GRAPH_BUILD_ERROR", e.what()).dump();
     }
 
     // Verify source and target exist

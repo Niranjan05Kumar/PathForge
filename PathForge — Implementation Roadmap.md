@@ -11,7 +11,7 @@ This document translates the **PathForge — Interactive Graph Pathfinding & Opt
 
 1. **DSA-First Foundation**: The native C++ graph engine and algorithm implementations are the primary intellectual component. Algorithms must be implemented from first principles, tested, and verified before UI layers are constructed.
 2. **Incremental Architectural Integration**: Layers are built and verified bottom-up:
-   $$\text{C++ Core} \longrightarrow \text{C++ IPC Bridge} \longrightarrow \text{Node.js REST API} \longrightarrow \text{React Canvas Editor} \longrightarrow \text{Visualization Engine} \longrightarrow \text{Benchmark Dashboard}$$
+   $$\text{C++ Core} \longrightarrow \text{C++ IPC Bridge} \longrightarrow \text{Node.js REST API} \longrightarrow \text{React Canvas Editor} \longrightarrow \text{Visualization Engine} \longrightarrow \text{Comparative Analysis}$$
 3. **Independently Verifiable Phases**: Every phase produces a tangible, testable deliverable (e.g., passing unit tests, CLI execution, or interactive canvas interaction). A phase cannot be marked complete without satisfying its checklist.
 4. **Strict Database-Free Mandate**: No database (SQL, NoSQL, ORM, or cache) is introduced at any phase. Application state resides strictly in runtime memory or portable JSON files.
 5. **Separation of Concerns**: Core pathfinding logic remains strictly in C++. Node.js acts purely as an API and process orchestration bridge. React handles rendering, interaction, and visualization.
@@ -29,7 +29,7 @@ Milestone 4: Interactive Graph Editor & MVP Release (Phase 7) [★ MVP BOUNDARY]
         ↓
 Milestone 5: Stepped Algorithm Visualization & Playback (Phase 8)
         ↓
-Milestone 6: High-Scale Benchmarking & Analytics (Phase 9)
+Milestone 6: Multi-Algorithm Comparative Analysis (Phase 9)
         ↓
 Milestone 7: Portability, Hardening & Production Release (Phase 10)
 ```
@@ -53,13 +53,12 @@ To maintain focus and avoid scope creep, project features are categorized into t
 │ • Basic Side-by-Side Algorithm Comparison (Dijkstra vs. A*)                 │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │ ADVANCED FEATURES (Phases 8–9: Laboratory Capabilities)                     │
-│ • Dual Mode Engine: Visualization Trace vs. Benchmark Mode                  │
+│ • Configurable Trace Engine: Step Trace Recording (`recordTrace: bool`)     │
 │ • Granular Trace Event Generation (EXPAND_NODE, RELAX_EDGE)                 │
 │ • Step-by-Step Canvas Playback (Step Forward/Backward, Variable Speed)      │
-│ • Deterministic Synthetic Graph Generators (Random, Sparse, Dense, Grid)    │
-│ • Multi-Run Benchmark Harness (Min/Max/Mean/Std-Dev execution times)        │
-│ • Large-Scale Graph Processing (10,000 to 100,000+ nodes)                   │
-│ • Interactive Benchmark Comparison Charts & Analytical Tables               │
+│ • Multi-Algorithm Comparative Analysis & Parity Verification                │
+│ • Side-by-Side Comparative Execution (BFS, DFS, Dijkstra, A*)               │
+│ • Path Cost Parity Validation (Verifying Dijkstra Cost == A* Cost)          │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │ POLISH & HARDENING (Phase 10: Production Readiness)                         │
 │ • JSON Graph Import/Export & Complete Experiment Log Export                 │
@@ -94,7 +93,7 @@ Phases 7–8:  Frontend Component & Visual State Testing
              • Visual accessibility and state rendering
 
 Phases 9–10: End-to-End, Performance & Regression Testing
-             • Large-scale benchmark stress tests (10,000+ nodes)
+             • Multi-algorithm stress and correctness tests
              • Memory leak profiling (Valgrind / AddressSanitizer)
              • Bug-to-test regression coverage
 ```
@@ -398,7 +397,7 @@ feat(engine): implement A* search with Zero, Euclidean, and Manhattan heuristics
 ## Phase 6 — C++ Engine JSON Interface & Node.js API Integration
 
 ### 1. Objective
-Bridge the native C++ engine with the web application tier. Implement a stream-based JSON parser and serializer in C++ supporting both Visualization and Benchmark execution modes. Build the Node.js + Express + TypeScript API server that spawns the C++ binary, streams JSON via stdin/stdout, and exposes structured REST endpoints.
+Bridge the native C++ engine with the web application tier. Implement a stream-based JSON parser and serializer in C++ supporting configurable trace recording (`recordTrace: bool`). Build the Node.js + Express + TypeScript API server that spawns the C++ binary, streams JSON via stdin/stdout, and exposes structured REST endpoints.
 
 ### 2. Complexity
 * **Rating**: `High`
@@ -409,9 +408,9 @@ Bridge the native C++ engine with the web application tier. Implement a stream-b
   * **C++ JSON Bridge (`JsonBridge`)**:
     * Parse input graph and command JSON from `std::cin`.
     * Serialization of result objects, metrics, and trace arrays to `std::cout`.
-    * Dual execution modes:
-      * **Visualization Mode**: Includes granular execution trace events (`steps: [...]`).
-      * **Benchmark Mode**: Omits trace events, returning aggregate metrics only.
+    * Configurable trace recording:
+      * **Visualization (Default)**: Includes granular execution trace events (`steps: [...]`).
+      * **Trace-Disabled (`recordTrace: false`)**: Omits trace events, returning path and metrics only.
     * CLI execution support: `./pathforge-engine input.json`.
   * **Node.js Express + TypeScript Server**:
     * Service layer `cppEngineService.ts` using `child_process.spawn()` to manage native process lifecycle.
@@ -421,9 +420,8 @@ Bridge the native C++ engine with the web application tier. Implement a stream-b
     * Error handling middleware mapping C++ stderr / exit codes to structured HTTP responses.
     * REST Endpoints:
       * `GET /api/health`: Server status and engine binary discovery check.
-      * `POST /api/graph/validate`: Schema and topological validation.
-      * `POST /api/algorithm/run`: Single algorithm execution.
-      * `POST /api/algorithm/compare`: Multi-algorithm comparison execution.
+      * `POST /api/pathfind`: Single algorithm execution with step trace generation.
+      * `POST /api/compare`: Multi-algorithm comparison execution.
 * **Optional**:
   * Graceful process pooling / persistent worker mode for high-frequency requests.
 
@@ -432,29 +430,29 @@ Bridge the native C++ engine with the web application tier. Implement a stream-b
 
 ### 5. Implementation Tasks
 1. Integrate lightweight C++ JSON library (e.g., `nlohmann/json`) via CMake in `engine/CMakeLists.txt`.
-2. Implement `engine/include/serialization/JsonBridge.h` and update `engine/src/main.cpp` to parse stdin and emit stdout.
-3. Add step event trace recording in C++ pathfinding algorithms when `mode == "visualization"`.
+2. Implement `engine/include/ipc/JsonBridge.h` and update `engine/src/main.cpp` to parse stdin and emit stdout.
+3. Add step event trace recording in C++ pathfinding algorithms when `recordTrace == true`.
 4. Scaffold Express server in `server/src/app.ts` and `server/src/server.ts`.
-5. Implement `server/src/services/cppEngineService.ts` to spawn the engine and stream stdin/stdout.
-6. Implement `server/src/middleware/validator.ts` and `server/src/middleware/errorHandler.ts`.
-7. Implement API route controllers in `server/src/controllers/algorithmController.ts`.
-8. Write backend integration tests using Vitest / Supertest verifying the end-to-end API-to-C++ pipeline.
+5. Implement `server/src/services/engineService.ts` to spawn the engine and stream stdin/stdout.
+6. Implement `server/src/validation/pathfindValidator.ts` and error handlers.
+7. Implement API route controllers for pathfind and compare endpoints.
+8. Write backend integration tests verifying the end-to-end API-to-C++ pipeline.
 
 ### 6. Expected Deliverable
 A fully integrated, running HTTP API server that accepts JSON pathfinding requests, delegates execution to the native C++ child process over stdin/stdout, and returns structured JSON responses.
 
 ### 7. Testing & Validation
-* **Integration Tests (`server/tests/api.test.ts`)**:
+* **Integration Tests (`server/tests/pathfind.test.ts`)**:
   * `GET /api/health` returns HTTP 200 with engine binary discovered.
-  * `POST /api/algorithm/run` with Dijkstra executes C++ engine and returns valid path and metrics.
-  * `POST /api/algorithm/run` with negative weights returns HTTP 400 with structured `NEGATIVE_EDGE_WEIGHT` error.
+  * `POST /api/pathfind` with Dijkstra executes C++ engine and returns valid path and metrics.
+  * `POST /api/pathfind` with negative weights returns HTTP 400 with structured `NEGATIVE_EDGE_WEIGHT` error.
   * Request timeout test: Simulated long-running C++ process killed after timeout with HTTP 504.
   * Stdin/stdout stress test: Graph with 1,000 nodes processed without pipe truncation or buffer overflow.
 
 ### 8. Completion Criteria
 * [ ] C++ engine consumes JSON from stdin, executes algorithms, and outputs valid JSON to stdout.
 * [ ] Node.js correctly spawns the C++ binary without using vulnerable shell command strings (`exec` prohibited).
-* [ ] Visualization Mode includes step trace arrays; Benchmark Mode omits trace arrays.
+* [ ] `recordTrace: true` includes step trace arrays; `recordTrace: false` omits trace arrays.
 * [ ] Invalid inputs return structured error responses with HTTP 400.
 * [ ] All backend integration tests pass cleanly.
 
@@ -614,71 +612,51 @@ feat(client): implement step-by-step algorithm playback engine and visual state 
 
 ---
 
-## Phase 9 — Synthetic Graph Generation & Benchmark Dashboard
+## Phase 9 — Multi-Algorithm Comparative Analysis & Parity Verification
 
 ### 1. Objective
-Implement deterministic synthetic graph generators in the C++ engine (Random, Sparse, Dense, Grid, Tree). Build the high-performance Benchmark Mode in C++ that processes large networks (up to 100,000+ nodes) without trace overhead. Implement the dedicated React Benchmark Dashboard with multi-run statistical summaries and performance bar charts.
+Implement multi-algorithm comparative analysis to execute BFS, DFS, Dijkstra, and A* side-by-side on active graph topologies. Calculate performance metrics (nodes visited, edges examined, kernel execution time) and mathematically verify path cost parity between Dijkstra and A*.
 
 ### 2. Complexity
-* **Rating**: `High`
-* **Rationale**: Involves algorithmic graph generation with pseudo-random seed determinism, high-resolution multi-run timing isolation, memory profiling for large graphs, and responsive data visualization charts.
+* **Rating**: `Medium`
+* **Rationale**: Requires robust aggregation of multi-algorithm results, verification of optimal cost equality across different search strategies, and responsive tabular presentation in the UI.
 
 ### 3. Scope
 * **Must Have**:
-  * **C++ Synthetic Graph Generators (`GraphGenerator.h/cpp`)**:
-    * Random (Erdős–Rényi), Sparse ($E \approx 3V$), Dense ($E \approx 0.3 \cdot V^2$), 2D Grid, and Tree topologies.
-    * Seed-based reproducibility: Supplying `seed: uint64_t` generates identical graphs.
-  * **C++ Benchmark Harness (`Benchmark.h/cpp`)**:
-    * Warm-up pass to prime CPU caches.
-    * Multi-run execution ($N \ge 5$ iterations).
-    * High-resolution timing isolating C++ kernel time from serialization/network.
-    * Statistical metrics: Min time, Max time, Mean time, Standard Deviation.
-    * Traversal metrics: Average nodes visited, average edges examined, average relaxations.
-    * Cost verification: Proves whether all tested optimal algorithms found equal path costs.
-  * **React Benchmark Dashboard (`/benchmark`)**:
-    * Configuration form: Node count ($V$), edge density, topology selector, algorithm checkboxes, run count, seed input.
-    * Presets: Small ($V=100$), Medium ($V=1,000$), Large ($V=10,000$), Very Large ($V=100,000$).
-    * Performance comparison bar charts for Execution Time (ms) and Nodes Visited.
-    * Structured comparative results table.
+  * **Backend Comparison Route (`/api/compare`)**:
+    * Executes Dijkstra, A*, BFS, and DFS sequentially on the user's graph using `recordTrace: false` for maximum throughput.
+    * Computes fastest algorithm by kernel execution time and algorithm with fewest visited nodes.
+    * Evaluates cost parity: verifies whether Dijkstra's minimal cost exactly matches A*'s minimal cost ($|cost_{dijkstra} - cost_{astar}| < 10^{-6}$).
+  * **Frontend Comparison View**:
+    * Structured comparative analysis table displaying Algorithm, Cost, Nodes Visited, and Kernel Time (ms).
+    * Prominent Cost Parity Verification Badge indicating exact cost match or discrepancy.
 * **Optional**:
-  * Benchmark export to CSV / Markdown format.
+  * Export comparison report to JSON experiment log.
 
 ### 4. Dependencies
-* Depends on **Phase 6** (C++ Benchmark Mode and REST endpoints) and **Phase 7** (Frontend routing and layout).
+* Depends on **Phase 6** (C++ engine and REST endpoints) and **Phase 7** (Canvas editor).
 
 ### 5. Implementation Tasks
-1. Implement synthetic graph generators in `engine/include/benchmark/GraphGenerator.h` and `engine/src/benchmark/GraphGenerator.cpp`.
-2. Implement multi-run benchmark orchestrator in `engine/include/benchmark/Benchmark.h`.
-3. Add backend endpoint `POST /api/benchmark/run` in `server/src/controllers/benchmarkController.ts`.
-4. Create frontend benchmark page in `client/src/pages/Benchmark.tsx`.
-5. Build configuration form and size preset buttons (`Small`, `Medium`, `Large`, `Very Large`).
-6. Build comparative bar chart components visualizing execution times and nodes visited.
-7. Build benchmark data table displaying statistical metrics and path cost parity.
-8. Validate 10,000-node and 100,000-node benchmarks execute within stable memory bounds.
+1. Implement `/api/compare` route handler in `server/src/routes/compare.ts`.
+2. Integrate `runCompare` API call in `client/src/services/api.ts`.
+3. Build Comparison Tab UI in `client/src/App.tsx` displaying comparative table and parity badge.
+4. Add automated test coverage in `server/tests/compare.test.ts`.
 
 ### 6. Expected Deliverable
-A dedicated, high-scale benchmarking dashboard capable of synthesizing deterministic graphs up to 100,000 nodes, executing multi-run comparative benchmarks, and rendering performance charts.
+An interactive comparative analysis panel that executes all algorithms side-by-side on the active graph, visualizes comparative performance metrics, and validates cost parity.
 
 ### 7. Testing & Validation
-* **Unit Tests (`engine/tests/BenchmarkTest.cpp`)**:
-  * Identical seeds generate identical graph node and edge sets.
-  * Statistical calculations (min, max, mean, std-dev) match known numerical values.
-  * Benchmark Mode omits trace events, consuming minimal memory.
-* **Benchmark Stress Tests**:
-  * 1,000 nodes, 5,000 edges: Completes under 50ms.
-  * 10,000 nodes, 50,000 edges: Completes under 500ms without memory exhaustion.
-  * Multi-run benchmark confirms A* and Dijkstra report identical minimal path costs.
+* Integration tests verifying `/api/compare` returns results for all algorithms and validates cost parity.
+* Tests confirming `recordTrace: false` omits step trace arrays for minimal memory footprint.
 
 ### 8. Completion Criteria
-* [ ] Deterministic graph generation produces reproducible topologies using seeds.
-* [ ] Benchmark Mode handles large graphs ($V \ge 10,000$) with sub-second execution.
-* [ ] Pure algorithm kernel time is strictly isolated from serialization and rendering time.
-* [ ] Benchmark dashboard renders comparative charts and structured statistical tables.
-* [ ] Path cost parity is verified and displayed between Dijkstra and A*.
+* [ ] All 4 pathfinding algorithms execute and return comparative metrics.
+* [ ] Path cost parity between Dijkstra and A* is validated and displayed.
+* [ ] Execution time and nodes visited are presented in a structured comparison table.
 
 ### 9. Recommended Git Checkpoint
 ```text
-feat: implement deterministic graph generators, benchmark harness, and benchmark dashboard
+feat: implement multi-algorithm comparative analysis and cost parity verification
 ```
 
 ---
@@ -717,7 +695,7 @@ Complete state portability via JSON graph import and experiment export. Perform 
   * Dark/Light mode theme toggle.
 
 ### 4. Dependencies
-* Depends on **Phase 8** (Visualization engine) and **Phase 9** (Benchmark suite).
+* Depends on **Phase 8** (Visualization engine) and **Phase 9** (Comparative analysis).
 
 ### 5. Implementation Tasks
 1. Implement JSON graph import parser and validation in `client/src/utils/import.ts`.
@@ -775,5 +753,5 @@ chore: complete production hardening, a11y audit, JSON portability, and master R
 | **6** | **IPC & Node.js API** | Stdin/stdout C++ JSON bridge and Express REST endpoints | `High` | Phase 5 | Backend API & Native IPC |
 | **7** | **React Graph Editor** | Interactive canvas editor connecting to API for Dijkstra/A* runs | `High` | Phase 6 | **★ Functional MVP** |
 | **8** | **Stepped Visualization** | Interactive playback engine with variable speed and state animator | `High` | Phase 6, 7 | Interactive Visualizer |
-| **9** | **Benchmarking & Analytics**| Synthetic graph generators, multi-run harness, and charts | `High` | Phase 6, 7 | High-Scale Benchmark Suite |
+| **9** | **Comparative Analysis**| Side-by-side algorithm comparison and cost parity verification | `Medium` | Phase 6, 7 | Multi-Algorithm Analysis Panel |
 | **10**| **Hardening & Release** | JSON portability, a11y, responsive design, Docker, and README | `Medium` | Phase 8, 9 | **Production Release** |

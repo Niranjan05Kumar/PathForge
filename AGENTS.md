@@ -6,7 +6,7 @@
 
 You are an expert AI software engineering agent working on **PathForge — Interactive Graph Pathfinding & Optimization Engine**.
 
-PathForge is an interactive, web-based algorithmic laboratory designed to visualize, analyze, and benchmark graph data structures and pathfinding algorithms.
+PathForge is an interactive, web-based algorithmic laboratory designed to visualize and analyze graph data structures and pathfinding algorithms.
 
 ### 1.1 The Core Architectural Hierarchy
 
@@ -17,7 +17,7 @@ React + TypeScript (Interactive Visualization & Canvas Editor)
 Node.js + Express + TypeScript (API, Input Validation & Child Process Management)
         │ JSON via stdin / stdout
         ▼
-C++ Algorithm Engine (Graph Core, Search Algorithms & Benchmarking Harness)
+C++ Algorithm Engine (Graph Core, Search Algorithms & Telemetry)
 ```
 
 ### 1.2 Primary Focus
@@ -51,10 +51,10 @@ These rules are permanent and must never be violated under any circumstances:
 * Stream validated JSON payloads directly into the child process's `stdin` and capture results from `stdout`.
 * Enforce process execution timeouts (e.g., 15 seconds) to kill non-terminating loops and return structured HTTP errors.
 
-### 5. Dual Execution Modes
-The C++ engine and API must support two distinct execution modes:
-* **Visualization Mode**: For small to medium graphs ($V \le 2,000$). Generates granular step-by-step trace events (`steps: [...]`) for canvas playback animation.
-* **Benchmark Mode**: For medium to very large graphs ($V = 1,000$ to $100,000+$). **Omits all trace events** (`steps: []`), returning aggregate performance metrics only. This prevents memory exhaustion and stream pipe saturation.
+### 5. Configurable Trace Recording
+The C++ engine and API support optional trace recording:
+* **Visualization (Default)**: Generates granular step-by-step trace events (`steps: [...]`) for canvas playback animation.
+* **Trace-Disabled Mode (`recordTrace: false`)**: Used during multi-algorithm comparison (`/api/compare`) to omit trace events (`steps: []`), returning path and performance metrics only. This avoids stream pipe saturation and maximizes response speed.
 
 ### 6. Strict Scope Boundaries
 Do not add features that distract from the DSA laboratory purpose. Explicitly forbidden:
@@ -89,7 +89,7 @@ Phase 7: Interactive React Graph Editor (Canvas, node/edge editing) [★ MVP MIL
    ↓
 Phase 8: Stepped Visualization & Playback (Trace animator, playback controls)
    ↓
-Phase 9: Benchmarking & Analytics (Synthetic generators, multi-run harness, charts)
+Phase 9: Multi-Algorithm Comparative Analysis (Side-by-side comparison, cost parity)
    ↓
 Phase 10: Portability, Hardening & Release (JSON portability, a11y, Docker, README)
 ```
@@ -102,7 +102,7 @@ Phase 10: Portability, Hardening & Release (JSON portability, a11y, Docker, READ
    * Server: `npm run build` && `npm test`
    * Client: `npm run build`
 3. **Satisfy Completion Criteria**: Verify all completion checkboxes in the roadmap before considering a phase finished.
-4. **Follow the MVP Boundary**: The MVP is complete at the conclusion of **Phase 7**. Do not introduce complex animation controls or high-scale benchmarking until the Phase 7 MVP is verified.
+4. **Follow the MVP Boundary**: The MVP is complete at the conclusion of **Phase 7**. Do not introduce complex animation controls or advanced comparative analysis until the Phase 7 MVP is verified.
 
 ---
 
@@ -150,7 +150,7 @@ Phase 10: Portability, Hardening & Release (JSON portability, a11y, Docker, READ
 
 ### 5.1 Correctness Before Performance
 Follow the mandatory development order:
-$$\text{Input Validation} \longrightarrow \text{Algorithmic Correctness} \longrightarrow \text{Automated Unit Tests} \longrightarrow \text{Integration Tests} \longrightarrow \text{Optimization} \longrightarrow \text{Benchmarking}$$
+$$\text{Input Validation} \longrightarrow \text{Algorithmic Correctness} \longrightarrow \text{Automated Unit Tests} \longrightarrow \text{Integration Tests} \longrightarrow \text{Comparative Verification}$$
 
 Do not optimize code before proving correctness through automated tests.
 

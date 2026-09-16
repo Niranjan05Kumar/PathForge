@@ -24,7 +24,7 @@ compareRouter.post('/', async (req: Request, res: Response) => {
       source,
       target,
       graph,
-      mode: 'benchmark'
+      recordTrace: false
     };
 
     const validation = validatePathfindRequest(candidatePayload);
@@ -39,14 +39,14 @@ compareRouter.post('/', async (req: Request, res: Response) => {
   try {
     const results: any[] = [];
 
-    // Execute each algorithm in benchmark mode (omits trace steps for maximum speed)
+    // Execute each algorithm (omits detailed visualization steps for comparison efficiency)
     for (const algSpec of algorithms) {
       const payload = {
         ...algSpec,
         source,
         target,
         graph,
-        mode: 'benchmark'
+        recordTrace: false
       };
 
       const response = await executeEngine(payload);

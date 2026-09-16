@@ -160,7 +160,7 @@ TEST(BFSTest, TraceRecordingToggle) {
         EXPECT_FALSE(step.description.empty());
     }
 
-    // Mode 2: Trace Disabled (Benchmark mode)
+    // Mode 2: Trace Disabled (Direct execution)
     AlgorithmOptions noTraceOptions(false);
     AlgorithmResult withoutTrace = BFS::run(g, "A", "C", noTraceOptions);
     EXPECT_TRUE(withoutTrace.steps.empty());

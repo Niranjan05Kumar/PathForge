@@ -5,9 +5,9 @@
 
 ## 1. Project Overview
 
-**PathForge** is an interactive, web-based algorithmic laboratory and route optimization platform engineered to design, visualize, analyze, and benchmark graph data structures and pathfinding algorithms.
+**PathForge** is an interactive, web-based algorithmic laboratory and route optimization platform engineered to design, visualize, and analyze graph data structures and pathfinding algorithms.
 
-The project is strictly **DSA-first (Data Structures & Algorithms-first)**. It is not a conventional full-stack CRUD application. The primary intellectual and computational core resides in a high-performance **C++ engine** that implements graph representations, priority queues, and search algorithms from first principles. A **Node.js + Express + TypeScript** service provides an API integration and process management layer, while a modern **React + TypeScript + Vite** frontend provides an interactive graph canvas, stepped algorithm visualizer, and benchmarking dashboard.
+The project is strictly **DSA-first (Data Structures & Algorithms-first)**. It is not a conventional full-stack CRUD application. The primary intellectual and computational core resides in a high-performance **C++ engine** that implements graph representations, priority queues, and search algorithms from first principles. A **Node.js + Express + TypeScript** service provides an API integration and process management layer, while a modern **React + TypeScript + Vite** frontend provides an interactive graph canvas, stepped algorithm visualizer, and comparative analysis panel.
 
 ### 1.1 Architectural Hierarchy
 
@@ -18,7 +18,7 @@ React + TypeScript (Interactive Visualization & Controls)
 Node.js + Express + TypeScript (API, Validation & Process Management)
         │ JSON via stdin / stdout
         ▼
-C++ Algorithm Engine (Graph Core, Search Algorithms & Benchmarking)
+C++ Algorithm Engine (Graph Core, Search Algorithms & Telemetry)
 ```
 
 The C++ engine is the core intellectual component. React functions strictly as the visual interface and presentation layer. Node.js/Express acts as the integration and orchestration bridge. The frontend must **never** duplicate or execute core pathfinding algorithms in JavaScript.
@@ -49,10 +49,8 @@ PathForge provides an end-to-end sandbox enabling developers, students, and engi
 5. **Continuous & Stepped Visualization**: Execute algorithms with continuous animated playback or step through execution events operation by operation.
 6. **Detailed Metrics Inspection**: Inspect final reconstructed routes, total path costs, node expansion counts, edge relaxation counts, and sub-millisecond execution times.
 7. **Side-by-Side Algorithm Comparison**: Execute multiple algorithms concurrently or sequentially on the exact same graph instance and verify path cost parity.
-8. **Synthetic Graph Generation**: Generate deterministic synthetic graphs (Random, Sparse, Dense, Grid, Tree) parameterized by node counts and pseudo-random seeds.
-9. **High-Scale Benchmarking**: Benchmark algorithms across small to very large graphs (100 to 100,000+ nodes) with multi-run statistical aggregation.
-10. **State Portability**: Import and export custom graph topologies and full experimental results via structured JSON.
-11. **Runtime Reset**: Reset graphs, visual traces, and benchmark caches cleanly without residual persistence.
+8. **State Portability**: Import and export custom graph topologies and full experimental results via structured JSON.
+9. **Runtime Reset**: Reset graphs, visual traces, and execution caches cleanly without residual persistence.
 
 ### 2.2 Pedagogical & Interview Value
 
@@ -62,7 +60,7 @@ The implementation must serve as an exemplar of rigorous software engineering an
 * Clear distinction between unweighted shortest paths (BFS) and weighted optimal routing (Dijkstra, A*).
 * Empirical verification of heuristic admissibility and consistency in A*.
 * Predecessor map management and linear-time path reconstruction.
-* Theoretical Big-O time and space complexity validated against empirical benchmark curves.
+* Theoretical Big-O time and space complexity validated against empirical runtime measurements.
 * Robust inter-process communication (IPC) between high-level web runtimes and native C++.
 * Comprehensive automated testing using GoogleTest.
 
@@ -74,9 +72,9 @@ PathForge is built using a decoupled, multi-tier architecture with clean separat
 
 | Layer | Technology | Primary Responsibilities |
 |---|---|---|
-| **Frontend** | React, TypeScript, Vite, HTML5, CSS | Interactive SVG/Canvas rendering, graph editing UI, step-by-step playback controls, visual state styling, benchmark charts, JSON file download/upload. |
+| **Frontend** | React, TypeScript, Vite, HTML5, CSS | Interactive SVG/Canvas rendering, graph editing UI, step-by-step playback controls, visual state styling, multi-algorithm comparison tables, JSON file download/upload. |
 | **Backend API** | Node.js, Express, TypeScript | REST API exposure, JSON schema request validation, C++ child process spawning and lifecycle management, stdin/stdout stream serialization, structured error handling, logging. |
-| **Algorithm Engine** | C++ (C++17 / C++20), CMake | In-memory graph representation, custom data structures (Min-Heap), BFS, DFS, Dijkstra, A*, heuristic functions, path reconstruction, synthetic graph generation, high-resolution execution timing. |
+| **Algorithm Engine** | C++ (C++17 / C++20), CMake | In-memory graph representation, custom data structures (Min-Heap), BFS, DFS, Dijkstra, A*, heuristic functions, path reconstruction, high-resolution execution timing. |
 | **Testing** | GoogleTest (C++), Vitest / Supertest (Node.js) | Unit testing of core C++ data structures and algorithms, API integration testing, frontend interaction testing, regression test verification. |
 | **Persistence** | None (In-Memory + JSON Files) | Transient runtime state; explicit JSON import/export for graphs and experiment logs. |
 
@@ -89,7 +87,7 @@ PathForge is built using a decoupled, multi-tier architecture with clean separat
 │                       React + TypeScript                         │
 │                                                                  │
 │   Graph Editor  │  Playback Controls  │  Visualization Engine    │
-│   Results Panel │  Comparison Table   │  Benchmark Dashboard     │
+│   Results Panel │  Comparison Table   │  Step Trace Log          │
 └─────────────────────────────────┬────────────────────────────────┘
                                   │ HTTP / JSON
                                   ▼
@@ -105,7 +103,7 @@ PathForge is built using a decoupled, multi-tier architecture with clean separat
 │                       C++ Algorithm Engine                       │
 │                                                                  │
 │   Graph Adjacency List  │  Min-Priority Queue  │  Path Reconstructor│
-│   BFS & DFS Kernels     │  Dijkstra & A*       │  Graph Generators  │
+│   BFS & DFS Kernels     │  Dijkstra & A*       │  Trace Recorder    │
 │   Execution Tracer      │  High-Res Timer      │  JSON Bridge       │
 └──────────────────────────────────────────────────────────────────┘
 ```
@@ -116,13 +114,11 @@ PathForge is built using a decoupled, multi-tier architecture with clean separat
 * Owns all graph data structures, adjacency lists, and vertex indexing.
 * Owns all pathfinding implementations, relaxation loops, and priority queue operations.
 * Reconstructs paths from predecessor maps and computes exact path costs.
-* Generates granular execution trace steps in Visualization Mode.
-* Generates aggregate timing and traversal metrics in Benchmark Mode.
-* Generates reproducible synthetic graphs based on seeds.
+* Generates granular execution trace steps when `recordTrace: true`.
 * Measures pure algorithm kernel execution using high-resolution hardware timers (`std::chrono::high_resolution_clock`).
 
 #### Node.js Server
-* Exposes clean REST endpoints for graph validation, generation, pathfinding execution, and benchmarking.
+* Exposes clean REST endpoints for pathfinding execution and multi-algorithm comparison.
 * Validates incoming request payloads, ensuring structural validity, data-type safety, and parameter bounds.
 * Spawns the compiled C++ engine executable as a child process via `child_process.spawn()`.
 * Streams validated JSON payloads into C++ standard input (`stdin`) and buffers responses from standard output (`stdout`).
@@ -136,7 +132,6 @@ PathForge is built using a decoupled, multi-tier architecture with clean separat
 * Manages visualization playback state (running, paused, stepping, speed adjustment).
 * Applies dynamic CSS classes and SVG attributes to visualize node and edge states (frontier, visited, current, path).
 * Displays formatted route summaries, optimization metrics, and comparative data tables.
-* Renders comparative bar charts for benchmark runs.
 * Facilitates browser-driven JSON import and export via Blob/File APIs.
 * Implements no pathfinding logic in JavaScript.
 
@@ -302,7 +297,7 @@ The application supports two client-side export options generating downloadable 
 #### 1. Export Graph Topology
 Exports the current graph configuration, nodes, and edges formatted to match the standard import schema.
 
-#### 2. Export Experiment / Benchmark Log
+#### 2. Export Experiment Log
 Exports a complete analytical snapshot containing:
 * Graph configuration and topology summary (node count, edge count, directed, weighted).
 * Selected source and destination node IDs.
@@ -313,26 +308,6 @@ Exports a complete analytical snapshot containing:
 * Traversal metrics (`nodesVisited`, `edgesExamined`, `relaxations`).
 * Precise execution time in milliseconds.
 * ISO timestamp of the experiment.
-
-### 7.3 Synthetic Graph Generation
-
-The C++ engine includes built-in graph generators to construct synthetic benchmarks deterministically:
-
-| Topology | Description | Typical Connectivity / Parameters |
-|---|---|---|
-| **Random (Erdős–Rényi)** | Uniformly distributed random node placement with random edge assignment. | Node count $V$, Edge count $E$. |
-| **Sparse Graph** | Low-degree network modeling real-world road maps or transport networks. | $E \approx 2V$ to $4V$. |
-| **Dense Graph** | Highly interconnected network modeling dense telecommunication fabrics. | $E \approx 0.2 \cdot \frac{V(V-1)}{2}$ to $0.5 \cdot \frac{V(V-1)}{2}$. |
-| **Grid Graph** | 2D mesh/lattice network with 4-way orthogonal connectivity. | Natural integer grid coordinates $(x, y)$. |
-| **Tree / DAG** | Connected acyclic structure or directed acyclic graph. | Exactly $V - 1$ edges for trees. |
-
-#### Generation Parameters
-* `nodes` (`number`): Target vertex count $V$.
-* `edges` (`number`) or `density` (`number`): Target edge density or count.
-* `topology` (`string`): `"random"` | `"sparse"` | `"dense"` | `"grid"` | `"tree"`.
-* `directed` (`boolean`): Whether generated edges are directed.
-* `weighted` (`boolean`): Whether edges receive random weights within $[w_{min}, w_{max}]$.
-* `seed` (`number`, optional): Unsigned 64-bit integer seed for pseudo-random number generators (`std::mt19937_64`). Supplying the same seed guarantees **100% reproducible graph generation** across test runs.
 
 ---
 
@@ -485,15 +460,15 @@ std::vector<std::string> reconstructPath(
 
 ---
 
-## 10. Algorithm Execution & Visualization Modes
+## 10. Algorithm Execution & Trace Recording
 
-The C++ engine provides two distinct execution modes to balance rich visual education with high-performance benchmarking:
+The C++ engine provides configurable trace recording to balance rich visual education with high-performance comparative execution:
 
-### 10.1 Visualization Mode
+### 10.1 Visualization (Trace Enabled)
 
-* **Target Graph Size**: Small to medium graphs ($V \le 2,000$, $E \le 10,000$).
+* **Target Use Case**: Interactive graph exploration on the workbench canvas.
 * **Primary Objective**: Deliver step-by-step visual animation for interactive learning.
-* **Payload Characteristics**: Returns final result metadata alongside a granular `steps` array.
+* **Payload Characteristics**: Returns final result metadata alongside a granular `steps` array (`recordTrace: true`).
 * **Trace Step Schema**:
   ```json
   {
@@ -509,26 +484,26 @@ The C++ engine provides two distinct execution modes to balance rich visual educ
     }
   }
   ```
-* **Frontend Handling**: The React visualizer receives the precomputed event trace and animates the transitions using playback timers. The frontend does not reverse-engineer algorithm state.
+* **Frontend Handling**: The React visualizer receives the precomputed event trace and animates the transitions using playback timers.
 
-### 10.2 Benchmark Mode
+### 10.2 Non-Traced Comparison Mode (`recordTrace: false`)
 
-* **Target Graph Size**: Medium to very large graphs ($V$ from 1,000 up to 100,000+).
-* **Primary Objective**: Measure pure algorithmic performance and scalability without memory or serialization bottlenecks.
+* **Target Use Case**: Multi-algorithm comparative analysis (`/api/compare`).
+* **Primary Objective**: Execute multiple search kernels sequentially and compare execution times and expansion counts with maximum throughput.
 * **Payload Characteristics**:
   * Returns **aggregate metrics only** (`pathCost`, `nodesVisited`, `edgesExamined`, `relaxations`, `executionTimeMs`).
   * **Omits the `steps` array completely** (`steps: []`).
-  * Avoids generating millions of trace JSON objects that would saturate memory, choke standard pipes, and crash browser rendering threads.
+  * Avoids generating large trace arrays when only summary route metrics and cost parity are needed.
 
 ---
 
 ## 11. User Interface & Canvas Workspace
 
-The frontend consists of two primary screens: the **Workspace** and the **Benchmark Dashboard**.
+The frontend consists of an integrated laboratory interface organized into four dedicated views: **Workspace**, **Step Trace**, **Comparison**, and **Console**.
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ Header: PathForge Brand | [ Workspace ] [ Benchmark ] | Reset | Preset Demo │
+│ Header: PathForge Brand | [ Workspace ] [ Step Trace ] [ Comparison ] [ Console ]
 ├─────────────────┬───────────────────────────────────────────┬───────────────┤
 │ Controls Panel  │ Graph Canvas                              │ Results Panel │
 │                 │                                           │               │
@@ -549,8 +524,8 @@ The frontend consists of two primary screens: the **Workspace** and the **Benchm
 
 #### 1. Header Bar
 * Application title and identity: **PathForge — Interactive Graph Pathfinding & Optimization Engine**.
-* Navigation tabs: **Workspace** and **Benchmark**.
-* Quick graph load presets (e.g., Simple Weighted, Grid Maze, Dense Network, Disconnected Graph).
+* Navigation tabs: **Workspace**, **Step Trace**, **Comparison**, and **Console**.
+* Quick graph load presets (e.g., Sample Multi-Path Network, Dijkstra Detour Network, Geometric Grid 4x4, Linear Pipeline).
 * Global canvas reset button.
 
 #### 2. Left Sidebar (Controls Panel)
@@ -596,33 +571,20 @@ The frontend consists of two primary screens: the **Workspace** and the **Benchm
 * Speed Slider: Adjustable animation speed from Slow (500ms per step) to Fast (10ms per step) to Instantaneous.
 * Step counter and progress bar: Displays `Step X of N`.
 
-### 11.2 Benchmark Dashboard (`/benchmark`)
+* Step counter and progress bar: Displays `Step X of N`.
 
-* **Configuration Controls**:
-  * Node count input ($V$) and Edge count / Density input ($E$).
-  * Topology selector: Random, Sparse, Dense, Grid, Tree.
-  * Graph Presets: Small ($V=100$), Medium ($V=1,000$), Large ($V=10,000$), Very Large ($V=100,000$).
-  * Algorithm checkboxes: Dijkstra, A*, BFS.
-  * Number of runs per algorithm (e.g., 5, 10) to compute statistical averages.
-  * Random seed input for reproducible benchmarks.
-* **Progress Indicator**: Real-time progress bar with an active cancellation option.
-* **Comparative Visual Charts**: Simple, responsive bar charts displaying:
-  * Execution Time Comparison (ms).
-  * Nodes Visited Comparison.
-* **Tabular Data View**: Structured comparative table displaying Min, Max, and Average execution times, Average nodes visited, Average edges examined, and Path Cost verification.
-
-### 11.3 Responsive Behavior
+### 11.2 Responsive Behavior
 
 * **Desktop (>1024px)**: 3-column layout (Controls | Canvas | Results) with persistent bottom playback bar.
 * **Tablet (768px - 1024px)**: 2-column layout (Canvas on top/left, stacked Controls and Results panel).
 * **Mobile (<768px)**: Vertically stacked layout (Canvas $\to$ Controls $\to$ Results $\to$ Playback) with collapsible drawer panels; zero horizontal page overflow.
 
-### 11.4 Accessibility (a11y) & UX States
+### 11.3 Accessibility (a11y) & UX States
 
 * **Keyboard Navigation**: All interactive controls, inputs, and buttons are keyboard accessible via `Tab`, `Enter`, `Space`, and `Arrow` keys.
 * **WCAG Contrast**: All text, node badges, and state indicators conform to WCAG 2.1 AA color contrast standards. Non-color visual cues (labels, badges, line weights, dash arrays) guarantee usability for colorblind users.
 * **Explicit UX States**: The application interface clearly reflects its current lifecycle state:
-  `EMPTY_GRAPH`, `GRAPH_EDITING`, `READY_TO_RUN`, `RUNNING`, `PAUSED`, `STEPPING`, `COMPLETED`, `NO_PATH_FOUND`, `ERROR`, `BENCHMARKING`, `BENCHMARK_COMPLETE`.
+  `EMPTY_GRAPH`, `GRAPH_EDITING`, `READY_TO_RUN`, `RUNNING`, `PAUSED`, `STEPPING`, `COMPLETED`, `NO_PATH_FOUND`, `ERROR`.
 
 ---
 
@@ -671,31 +633,19 @@ Users can select multiple algorithms to execute concurrently or sequentially aga
 
 ---
 
-## 13. Benchmarking & Performance
+## 13. Comparative Analysis & Performance Telemetry
 
-### 13.1 Benchmark Methodology
+### 13.1 Multi-Algorithm Execution Protocol
 
-To ensure scientific accuracy and prevent timing artifacts, the C++ benchmarking engine follows a strict 10-step protocol:
-1. Parse graph configuration, topology parameters, algorithms, run count ($N \ge 5$), and random seed.
-2. Construct the synthetic graph in C++ using `std::mt19937_64` for deterministic structure.
-3. Validate graph connectivity; select a valid reachable source and destination pair.
-4. Execute a warm-up pass for each selected algorithm to prime CPU instruction caches and memory allocators.
-5. For each selected algorithm, execute $N$ repeated iterations on the identical in-memory graph.
-6. Record execution times for each run using `std::chrono::high_resolution_clock`.
-7. Compute statistical metrics: Minimum time, Maximum time, Mean time, and Standard Deviation.
-8. Calculate average node expansions, edge examinations, and relaxations across runs.
-9. Verify that all optimal algorithms produced identical path costs on successful runs.
-10. Return an aggregate summary JSON payload to Node.js without visualization trace overhead.
+To verify algorithm correctness and evaluate search efficiency, PathForge executes all algorithms against the identical user graph:
+1. Parse user graph, source, destination, and selected heuristic.
+2. Execute Dijkstra, A*, BFS, and DFS sequentially in C++.
+3. Record kernel execution times using `std::chrono::high_resolution_clock`.
+4. Record node expansions, edge examinations, and relaxations.
+5. Mathematically verify path cost parity: $|cost_{dijkstra} - cost_{astar}| < 10^{-6}$.
+6. Return summary results in a single structured JSON response.
 
-### 13.2 Suggested Graph Sizes
-
-* **Small**: 100 nodes, ~400 edges.
-* **Medium**: 1,000 nodes, ~5,000 edges.
-* **Large**: 10,000 nodes, ~50,000 edges.
-* **Very Large**: 100,000 nodes, ~500,000 edges.
-*(Sizes are user-configurable presets bounded only by available system RAM).*
-
-### 13.3 Performance Metric Isolation
+### 13.2 Performance Metric Isolation
 
 PathForge strictly isolates and reports the exact component timings:
 * **Algorithm Kernel Time**: Pure C++ search execution measured inside the engine.
@@ -715,11 +665,8 @@ All backend endpoints use the `/api` prefix and communicate using standard JSON.
 
 ```text
 GET  /api/health
-POST /api/graph/validate
-POST /api/graph/generate
-POST /api/algorithm/run
-POST /api/algorithm/compare
-POST /api/benchmark/run
+POST /api/pathfind
+POST /api/compare
 ```
 
 No database CRUD endpoints exist.
@@ -829,51 +776,6 @@ Executes multiple algorithms on the same graph instance.
 * **Request Body**: Similar to `/api/algorithm/run`, but accepts `algorithms: ["dijkstra", "astar", "bfs"]`.
 * **Response (200 OK)**: Array of algorithm execution result objects with parity verification flag.
 
-#### `POST /api/benchmark/run`
-Executes a multi-run benchmark suite on a generated or uploaded graph in Benchmark Mode.
-* **Request Body**:
-  ```json
-  {
-    "graphConfig": {
-      "nodes": 10000,
-      "edges": 50000,
-      "topology": "sparse",
-      "seed": 42
-    },
-    "algorithms": ["dijkstra", "astar"],
-    "heuristic": "euclidean",
-    "runs": 5
-  }
-  ```
-* **Response (200 OK)**:
-  ```json
-  {
-    "success": true,
-    "graphSummary": { "nodes": 10000, "edges": 50000, "topology": "sparse" },
-    "results": [
-      {
-        "algorithm": "dijkstra",
-        "avgTimeMs": 82.4,
-        "minTimeMs": 79.1,
-        "maxTimeMs": 86.2,
-        "avgNodesVisited": 9421,
-        "avgEdgesExamined": 38172,
-        "pathCost": 154.2
-      },
-      {
-        "algorithm": "astar",
-        "avgTimeMs": 31.2,
-        "minTimeMs": 29.8,
-        "maxTimeMs": 33.5,
-        "avgNodesVisited": 2784,
-        "avgEdgesExamined": 11239,
-        "pathCost": 154.2
-      }
-    ],
-    "costMatch": true
-  }
-  ```
-
 ---
 
 ## 15. C++ ↔ Node Integration
@@ -891,7 +793,7 @@ export interface ExecutionRequest {
   algorithm: string;
   source: string;
   destination: string;
-  mode: 'visualization' | 'benchmark';
+  recordTrace?: boolean;
   heuristic?: string;
 }
 
@@ -943,9 +845,9 @@ Correctness, input validation, automated testing, and edge-case handling form **
 
 ### 16.1 Engineering Priority Order
 
-$$\text{Validation} \to \text{Correctness} \to \text{Unit Tests} \to \text{Integration Tests} \to \text{Performance Optimization} \to \text{Benchmarking}$$
+$$\text{Validation} \to \text{Correctness} \to \text{Unit Tests} \to \text{Integration Tests} \to \text{Performance Optimization} \to \text{Comparative Verification}$$
 
-Algorithms must be proven correct via automated test suites before performance tuning or benchmark evaluations occur.
+Algorithms must be proven correct via automated test suites before performance tuning or comparative evaluations occur.
 
 ### 16.2 Input Validation Rules
 
@@ -957,7 +859,6 @@ The Node.js API and C++ engine enforce rigorous validation:
 * **Negative Weights**: Negative edge weights are rejected for Dijkstra and A* with `NEGATIVE_EDGE_WEIGHT`.
 * **Duplicate Edges / Self-Loops**: Rejected by default unless explicitly permitted in graph configuration (`SELF_LOOP_REJECTED`, `DUPLICATE_EDGE_REJECTED`).
 * **Missing Coordinates for A\***: Selecting Euclidean or Manhattan heuristics on graphs with missing node coordinates returns `MISSING_NODE_COORDINATES`.
-* **Benchmark Limits**: Run count $N \le 0$ or negative node counts return `INVALID_BENCHMARK_PARAM`.
 
 #### Structured Error Format
 All errors return consistent, structured JSON responses:
@@ -987,7 +888,6 @@ All errors return consistent, structured JSON responses:
 | **Multiple Shortest Paths** | Multiple paths share identical minimal cost. | Return one valid optimal path deterministically based on node index ordering. |
 | **Zero-Weight Edges** | Valid graph containing $w = 0$ edges. | Process correctly without infinite cycles; return optimal cost. |
 | **Negative-Weight Edges** | Graph containing $w < 0$ edges. | Reject execution for Dijkstra and A* with `NEGATIVE_EDGE_WEIGHT`. |
-| **Large Sparse Graph** | $V \ge 100,000, E \ge 500,000$. | Execute in Benchmark Mode without memory exhaustion or stack overflow. |
 | **C++ Engine Fault** | C++ process crashes or exits abnormally. | Node.js intercepts error, logs diagnostic message, and returns structured 500 `ENGINE_CRASH` without crashing the API server. |
 
 ### 16.4 Automated Test Suites
@@ -998,7 +898,6 @@ All errors return consistent, structured JSON responses:
 * `DFSTest.cpp`: Traversal completeness, cycle termination, non-optimal path verification.
 * `DijkstraTest.cpp`: Known shortest path verification, zero-weight handling, negative weight rejection, disconnected graph handling.
 * `AStarTest.cpp`: Heuristic admissibility, equivalence of Zero Heuristic to Dijkstra, Euclidean and Manhattan routing, coordinate validation.
-* `BenchmarkTest.cpp`: Seed reproducibility, statistical calculation accuracy.
 
 #### 2. Regression Testing Protocol
 Every bug discovered during development must trigger the creation of a permanent regression test:
@@ -1035,10 +934,7 @@ pathforge/
 │   │   │   ├── Dijkstra.h           # Dijkstra's Algorithm
 │   │   │   ├── AStar.h              # A* Search Algorithm
 │   │   │   └── Heuristics.h         # Zero, Euclidean, Manhattan heuristics
-│   │   ├── benchmark/
-│   │   │   ├── GraphGenerator.h     # Synthetic graph generators (Random, Grid, etc.)
-│   │   │   └── Benchmark.h          # Benchmark execution harness
-│   │   └── serialization/
+│   │   └── ipc/
 │   │       └── JsonBridge.h         # JSON parser & serializer bridge
 │   ├── src/
 │   │   ├── graph/
@@ -1048,9 +944,8 @@ pathforge/
 │   │   │   ├── DFS.cpp
 │   │   │   ├── Dijkstra.cpp
 │   │   │   └── AStar.cpp
-│   │   ├── benchmark/
-│   │   │   ├── GraphGenerator.cpp
-│   │   │   └── Benchmark.cpp
+│   │   ├── ipc/
+│   │   │   └── JsonBridge.cpp
 │   │   └── main.cpp                 # CLI & IPC entry point (stdin/stdout JSON)
 │   └── tests/                       # GoogleTest automated unit test suite
 │       ├── CMakeLists.txt
@@ -1058,8 +953,7 @@ pathforge/
 │       ├── BFSTest.cpp
 │       ├── DFSTest.cpp
 │       ├── DijkstraTest.cpp
-│       ├── AStarTest.cpp
-│       └── BenchmarkTest.cpp
+│       └── AStarTest.cpp
 │
 ├── server/                          # Node.js + Express + TypeScript API Server
 │   ├── package.json
@@ -1067,22 +961,18 @@ pathforge/
 │   └── src/
 │       ├── app.ts                   # Express application setup & middleware
 │       ├── server.ts                # HTTP server listener
-│       ├── controllers/
-│       │   ├── algorithmController.ts
-│       │   ├── benchmarkController.ts
-│       │   └── graphController.ts
 │       ├── routes/
-│       │   ├── algorithmRoutes.ts
-│       │   ├── benchmarkRoutes.ts
-│       │   └── graphRoutes.ts
+│       │   ├── pathfind.ts
+│       │   ├── compare.ts
+│       │   └── health.ts
 │       ├── services/
-│       │   ├── cppEngineService.ts  # C++ child process spawning & stdin/stdout pipe
-│       │   └── validationService.ts # JSON schema validation logic
+│       │   └── engineService.ts     # C++ child process spawning & stdin/stdout pipe
+│       ├── validation/
+│       │   └── pathfindValidator.ts # JSON schema validation logic
 │       ├── middleware/
-│       │   ├── errorHandler.ts      # Global structured error handler
-│       │   └── validator.ts         # Request validation middleware
+│       │   └── errorHandler.ts      # Global structured error handler
 │       └── types/
-│           └── api.ts               # Shared TypeScript request/response contracts
+│           └── graph.ts             # Shared TypeScript request/response contracts
 │
 ├── client/                          # React + TypeScript + Vite Frontend
 │   ├── package.json
@@ -1091,28 +981,18 @@ pathforge/
 │   ├── index.html
 │   └── src/
 │       ├── main.tsx                 # React DOM entry point
-│       ├── App.tsx                  # Root component & layout router
-│       ├── pages/
-│       │   ├── Workspace.tsx        # Interactive Graph Editor & Visualizer
-│       │   └── Benchmark.tsx        # Benchmark Dashboard & Comparison View
+│       ├── App.tsx                  # Root component & workbench layout
 │       ├── components/
-│       │   ├── Header/
-│       │   ├── GraphCanvas/         # SVG/Canvas graph renderer
-│       │   ├── GraphControls/       # Node/edge editing toolbar
-│       │   ├── AlgorithmSelector/   # Algorithm & heuristic picker
-│       │   ├── PlaybackControls/    # Play, pause, step forward/backward, speed slider
-│       │   ├── ResultsPanel/        # Formatted route & metrics display
-│       │   ├── ComparisonPanel/     # Multi-algorithm comparison table
-│       │   └── BenchmarkPanel/      # Synthetic generator controls & charts
+│       │   └── TraceLogPanel.tsx    # Step trace log panel
 │       ├── hooks/
-│       │   ├── useGraph.ts          # Graph state management hook
 │       │   └── usePlayback.ts       # Visual animation playback hook
 │       ├── services/
 │       │   └── api.ts               # API client HTTP methods
 │       ├── types/
 │       │   └── graph.ts             # Client-side graph & playback types
 │       └── utils/
-│           ├── geometry.ts          # 2D Euclidean distance & vector math
+│           ├── presets.ts           # Built-in graph presets
+│           ├── import.ts            # JSON graph file import validation
 │           └── export.ts            # Browser Blob JSON download helpers
 │
 ├── README.md                        # Master technical documentation
@@ -1134,7 +1014,7 @@ Phase 4: C++ JSON Interface ◄─────── Phase 3: Dijkstra & A*
         ▼
 Phase 5: Node.js Express API ──────► Phase 6: React Graph Editor
                                              │
-Phase 8: Benchmarking & Charts ◄──── Phase 7: Algorithm Visualization
+Phase 8: Multi-Algorithm Comparison ◄─ Phase 7: Algorithm Visualization
         │
         ▼
 Phase 9: Import/Export & Results ──► Phase 10: Hardening & Documentation
@@ -1143,11 +1023,11 @@ Phase 9: Import/Export & Results ──► Phase 10: Hardening & Documentation
 * **Phase 1 — C++ Graph Core**: Implement `Graph`, `Node`, `Edge`, contiguous vertex index mappings, adjacency list representations, edge insertion/deletion, and unit tests.
 * **Phase 2 — Traversal Algorithms**: Implement BFS and DFS with predecessor tracking, path reconstruction, and cycle termination tests.
 * **Phase 3 — Shortest Path Algorithms**: Implement custom `MinPriorityQueue`, Dijkstra's algorithm, A* search with heuristics (Zero, Euclidean, Manhattan), and GoogleTest test suites.
-* **Phase 4 — C++ JSON Interface & Modes**: Implement `JsonBridge` supporting `stdin`/`stdout` streaming, dual execution modes (Visualization trace vs. Benchmark aggregate), and CLI arguments.
-* **Phase 5 — Node.js Express API**: Set up TypeScript server, request validation schemas, `cppEngineService` process spawner, structured error mapping, and `/api` endpoints.
+* **Phase 4 — C++ JSON Interface & Modes**: Implement `JsonBridge` supporting `stdin`/`stdout` streaming, configurable trace recording (`recordTrace: bool`), and CLI arguments.
+* **Phase 5 — Node.js Express API**: Set up TypeScript server, request validation schemas, `engineService` process spawner, structured error mapping, and `/api` endpoints.
 * **Phase 6 — React Graph Editor**: Build interactive canvas (SVG/Canvas), node/edge creation, dragging, deletion, graph property toggles, and source/destination selection.
 * **Phase 7 — Algorithm Visualization**: Connect frontend to API, implement step-by-step animation engine, playback controls (Play, Pause, Step, Speed), and dynamic node/edge visual states.
-* **Phase 8 — Benchmarking & Synthetic Generators**: Implement synthetic graph generators in C++, multi-run benchmark orchestrator, performance aggregation, and frontend comparison charts.
+* **Phase 8 — Multi-Algorithm Comparison & Parity Verification**: Implement side-by-side comparison across BFS, DFS, Dijkstra, and A*, calculating metrics and verifying cost parity.
 * **Phase 9 — File Portability & Export**: Build JSON graph import with schema validation, graph export, and experiment result export.
 * **Phase 10 — Hardening & Finalization**: Conduct end-to-end integration tests, verify responsive layouts, audit accessibility (a11y), complete the comprehensive README, and configure production builds.
 
@@ -1177,9 +1057,8 @@ The MVP is complete when the following 12 capabilities work reliably end-to-end:
 Following MVP stabilization, the advanced feature set is implemented:
 * Full BFS and DFS algorithm integration with specialized traversal animations.
 * Manhattan distance heuristic for 2D grid topologies.
-* Synthetic graph generators (Random, Sparse, Dense, Grid, Tree) parameterized by node counts and random seeds.
-* Large-scale benchmark dashboard supporting graphs from 1,000 to 100,000+ nodes in Benchmark Mode.
-* Performance comparison charts visualizing execution time and node expansion tradeoffs.
+* Side-by-side comparative execution of all 4 algorithms on user graphs.
+* Live cost parity badge verifying Dijkstra cost equals A* cost.
 * Granular step-by-step playback controls (Step Forward, Step Backward, Variable Speed Slider).
 * JSON graph file import with comprehensive schema and semantic validation.
 * Complete experimental run export (graph topology + route + metrics).
@@ -1260,7 +1139,7 @@ The repository's master `README.md` must be comprehensive and technically thorou
   4. *Why A\* in addition to Dijkstra?* Demonstrates heuristic-directed search, showing how domain knowledge prunes search spaces while maintaining optimality.
   5. *Why no database?* Maintains pure algorithmic focus; graph structures are analytical models loaded in-memory or persisted via portable JSON files. Eliminates environment friction.
   6. *Why Node.js/Express between C++ and React?* Provides a robust REST interface, JSON schema validation, process lifecycle protection, and cross-platform web client access.
-  7. *Why separate Visualization Mode and Benchmark Mode?* Prevents generating millions of trace events during large graph benchmarks, isolating pure algorithmic performance from serialization overhead.
+  7. *Why support configurable trace recording (`recordTrace`)?* Prevents generating massive trace arrays during multi-algorithm comparisons, isolating pure algorithmic performance and optimizing response speed.
 
 ---
 
@@ -1285,7 +1164,7 @@ The PathForge project is complete and ready for deployment when all of the follo
 2. **Automated Testing Coverage**: The C++ GoogleTest suite executes cleanly with all unit tests passing, covering graph mutations, algorithm kernels, and all identified edge cases.
 3. **Integration Reliability**: The full pipeline (`React → Node.js API → C++ Engine → Node.js → React`) operates seamlessly via standard pipes with zero unhandled exceptions.
 4. **Visual Clarity**: Algorithm execution is clearly understandable through dynamic node and edge visual states, responsive playback controls, and formatted route results.
-5. **Benchmark Performance**: Large graphs ($V \ge 10,000$) execute in Benchmark Mode with sub-second response times and zero memory leaks.
+5. **Comparative Analysis Performance**: Multi-algorithm comparison executes cleanly across all algorithms with sub-second response times and zero memory leaks.
 6. **Data Portability**: Graphs and experimental logs can be imported and exported cleanly via valid JSON files without persistent server storage.
 7. **Database-Free Compliance**: The application runs entirely in runtime memory with zero database dependencies.
 8. **Documentation Excellence**: The README enables any engineer to clone, compile, test, and run the system with zero ambiguity.

@@ -192,7 +192,7 @@ TEST(DijkstraTest, TraceRecordingEvents) {
     }
     EXPECT_TRUE(foundRelaxEvent);
 
-    // Benchmark mode: no trace
+    // Direct execution: no trace
     AlgorithmOptions noTraceOptions(false);
     AlgorithmResult withoutTrace = Dijkstra::run(g, "A", "B", noTraceOptions);
     EXPECT_TRUE(withoutTrace.steps.empty());

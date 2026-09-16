@@ -8,11 +8,10 @@ import {
   CompareRequest,
   TraceStep
 } from './types/graph';
-import { runPathfind, runCompare, checkHealth, generateGraph } from './services/api';
+import { runPathfind, runCompare, checkHealth } from './services/api';
 import { GRAPH_PRESETS } from './utils/presets';
 import { usePlayback } from './hooks/usePlayback';
 import { TraceLogPanel } from './components/TraceLogPanel';
-import { BenchmarkDashboard } from './components/BenchmarkDashboard';
 import { parseAndValidateGraphJson } from './utils/import';
 import { exportGraphJson, exportExperimentJson } from './utils/export';
 
@@ -57,18 +56,11 @@ export const App: React.FC = () => {
   const [destinationNode, setDestinationNode] = useState<string>(defaultPreset.defaultTarget);
 
   // --- UI Modes & Selection ---
-  const [viewMode, setViewMode] = useState<'workbench' | 'benchmark'>('workbench');
   const [activeTab, setActiveTab] = useState<'telemetry' | 'comparison' | 'trace' | 'system'>('telemetry');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<CanvasTool>('select');
   const [edgeStartNode, setEdgeStartNode] = useState<string | null>(null);
-
-  // --- Synthetic Graph Generator Panel (Canvas Quick-Gen) ---
-  const [showGenModal, setShowGenModal] = useState<boolean>(false);
-  const [genTopology, setGenTopology] = useState<'sparse' | 'grid' | 'tree' | 'random' | 'dense'>('grid');
-  const [genNodes, setGenNodes] = useState<number>(25);
-  const [isGeneratingCanvas, setIsGeneratingCanvas] = useState<boolean>(false);
 
   // --- Node Dragging & File Import ---
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
@@ -127,8 +119,8 @@ export const App: React.FC = () => {
     setEdgeStartNode(null);
   };
 
-  // --- Load Synthetic Graph into Canvas ---
-  const handleLoadSyntheticGraph = (
+  // --- Load Graph into Canvas ---
+  const handleLoadGraph = (
     newNodes: CanvasNode[],
     newEdges: CanvasEdge[],
     directed: boolean,
@@ -145,45 +137,6 @@ export const App: React.FC = () => {
     handleResetExecution();
   };
 
-  const handleGenerateSyntheticCanvas = async () => {
-    setIsGeneratingCanvas(true);
-    setErrorMessage(null);
-    try {
-      const resp = await generateGraph({
-        nodes: genNodes,
-        topology: genTopology,
-        seed: Math.floor(Math.random() * 999999) + 1,
-        directed: isDirected,
-        weighted: isWeighted
-      });
-
-      if (resp.success && resp.data) {
-        const generatedNodes: CanvasNode[] = resp.data.nodes.map((n: { id: string; label?: string; x?: number; y?: number }) => ({
-          id: n.id,
-          label: n.label || n.id,
-          x: n.x ?? 100,
-          y: n.y ?? 100
-        }));
-
-        const generatedEdges: CanvasEdge[] = resp.data.edges.map((e: { source: string; target: string; weight: number }, idx: number) => ({
-          id: `edge_${idx}`,
-          source: e.source,
-          target: e.target,
-          weight: e.weight
-        }));
-
-        handleLoadSyntheticGraph(generatedNodes, generatedEdges, isDirected, isWeighted);
-        setShowGenModal(false);
-      } else {
-        setErrorMessage(resp.error?.message || 'Failed generating synthetic graph.');
-      }
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Error communicating with graph generator.');
-    } finally {
-      setIsGeneratingCanvas(false);
-    }
-  };
-
   // --- File Import & Export Handlers ---
   const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -194,7 +147,7 @@ export const App: React.FC = () => {
       const content = e.target?.result as string;
       const parseRes = parseAndValidateGraphJson(content);
       if (parseRes.success && parseRes.nodes && parseRes.edges) {
-        handleLoadSyntheticGraph(
+        handleLoadGraph(
           parseRes.nodes,
           parseRes.edges,
           parseRes.directed ?? false,
@@ -239,7 +192,7 @@ export const App: React.FC = () => {
       heuristic: selectedAlgorithm === 'astar' ? selectedHeuristic : undefined,
       source: sourceNode,
       target: destinationNode,
-      mode: 'visualize',
+      recordTrace: true,
       graph: {
         directed: isDirected,
         weighted: isWeighted,
@@ -537,85 +490,49 @@ export const App: React.FC = () => {
 
           <div style={{ height: '18px', width: '1px', backgroundColor: 'var(--border)' }} />
 
-          {/* Top-Level Mode Selector */}
-          <nav style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+          {/* Navigation Tabs */}
+          <nav style={{ display: 'flex', gap: '2px' }}>
             <button
-              onClick={() => setViewMode('workbench')}
-              className={viewMode === 'workbench' ? 'tab-active' : 'tab-inactive'}
+              onClick={() => setActiveTab('telemetry')}
+              className={activeTab === 'telemetry' ? 'tab-active' : 'tab-inactive'}
             >
-              Workbench Canvas
+              Workspace
             </button>
             <button
-              onClick={() => setViewMode('benchmark')}
-              className={viewMode === 'benchmark' ? 'tab-active' : 'tab-inactive'}
+              onClick={() => setActiveTab('trace')}
+              className={activeTab === 'trace' ? 'tab-active' : 'tab-inactive'}
               style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
             >
-              <span>⚡ Benchmark Dashboard</span>
-              <span
-                style={{
-                  fontSize: '9px',
-                  fontFamily: 'var(--font-mono)',
-                  padding: '1px 5px',
-                  borderRadius: '10px',
-                  backgroundColor: viewMode === 'benchmark' ? 'var(--accent-primary)' : 'var(--bg-elevated)',
-                  color: viewMode === 'benchmark' ? '#111315' : 'var(--accent-primary)',
-                  fontWeight: 700,
-                }}
-              >
-                100K
-              </span>
+              <span>Step Trace</span>
+              {result?.steps && result.steps.length > 0 && (
+                <span
+                  style={{
+                    fontSize: '9px',
+                    fontFamily: 'var(--font-mono)',
+                    padding: '1px 5px',
+                    borderRadius: '10px',
+                    backgroundColor: activeTab === 'trace' ? 'var(--accent-primary)' : 'var(--bg-elevated)',
+                    color: activeTab === 'trace' ? '#111315' : 'var(--accent-primary)',
+                    fontWeight: 700,
+                  }}
+                >
+                  {result.steps.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('comparison')}
+              className={activeTab === 'comparison' ? 'tab-active' : 'tab-inactive'}
+            >
+              Comparison
+            </button>
+            <button
+              onClick={() => setActiveTab('system')}
+              className={activeTab === 'system' ? 'tab-active' : 'tab-inactive'}
+            >
+              Console
             </button>
           </nav>
-
-          {viewMode === 'workbench' && (
-            <>
-              <div style={{ height: '18px', width: '1px', backgroundColor: 'var(--border)' }} />
-
-              {/* Workbench Sub-Tabs */}
-              <nav style={{ display: 'flex', gap: '2px' }}>
-                <button
-                  onClick={() => setActiveTab('telemetry')}
-                  className={activeTab === 'telemetry' ? 'tab-active' : 'tab-inactive'}
-                >
-                  Workspace
-                </button>
-                <button
-                  onClick={() => setActiveTab('trace')}
-                  className={activeTab === 'trace' ? 'tab-active' : 'tab-inactive'}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <span>Step Trace</span>
-                  {result?.steps && result.steps.length > 0 && (
-                    <span
-                      style={{
-                        fontSize: '9px',
-                        fontFamily: 'var(--font-mono)',
-                        padding: '1px 5px',
-                        borderRadius: '10px',
-                        backgroundColor: activeTab === 'trace' ? 'var(--accent-primary)' : 'var(--bg-elevated)',
-                        color: activeTab === 'trace' ? '#111315' : 'var(--accent-primary)',
-                        fontWeight: 700,
-                      }}
-                    >
-                      {result.steps.length}
-                    </span>
-                  )}
-                </button>
-                <button
-                  onClick={() => setActiveTab('comparison')}
-                  className={activeTab === 'comparison' ? 'tab-active' : 'tab-inactive'}
-                >
-                  Comparison
-                </button>
-                <button
-                  onClick={() => setActiveTab('system')}
-                  className={activeTab === 'system' ? 'tab-active' : 'tab-inactive'}
-                >
-                  Console
-                </button>
-              </nav>
-            </>
-          )}
         </div>
 
         {/* Live Status Telemetry Badges */}
@@ -689,16 +606,8 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* --- Main Content Area: Conditional on viewMode --- */}
-      {viewMode === 'benchmark' ? (
-        <BenchmarkDashboard
-          onLoadGraphToCanvas={handleLoadSyntheticGraph}
-          onSwitchToEditor={() => setViewMode('workbench')}
-        />
-      ) : (
-        <>
-          {/* --- Main 3-Column Workbench --- */}
-          <div className="workbench-layout">
+      {/* --- Main 3-Column Workbench --- */}
+      <div className="workbench-layout">
         
         {/* --- Left Column: Algorithm & Graph Controls --- */}
         <aside className="workbench-controls-panel">
@@ -883,71 +792,13 @@ export const App: React.FC = () => {
             )}
           </div>
 
-          {/* Section: Presets & Synthetic Generator */}
+          {/* Section: Presets */}
           <div style={{ padding: '14px', marginTop: 'auto', borderTop: '1px solid var(--border-subtle)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Load Presets
               </div>
-              <button
-                onClick={() => setShowGenModal(!showGenModal)}
-                className="btn-ghost"
-                style={{ fontSize: '10px', color: 'var(--accent-primary)', height: '20px', padding: '0 6px', border: '1px solid var(--accent-muted)' }}
-              >
-                {showGenModal ? 'Hide Generator' : '⚡ Synthetic'}
-              </button>
             </div>
-
-            {showGenModal && (
-              <div
-                style={{
-                  backgroundColor: 'var(--bg-elevated)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '10px',
-                  marginBottom: '10px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px'
-                }}
-              >
-                <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--accent-primary)' }}>
-                  SYNTHETIC GENERATOR
-                </div>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <select
-                    value={genTopology}
-                    onChange={(e) => setGenTopology(e.target.value as any)}
-                    className="select-field"
-                    style={{ flex: 1, height: '24px', fontSize: '10px' }}
-                  >
-                    <option value="grid">Grid (Square)</option>
-                    <option value="tree">Tree</option>
-                    <option value="sparse">Sparse</option>
-                    <option value="random">Random</option>
-                    <option value="dense">Dense</option>
-                  </select>
-                  <input
-                    type="number"
-                    min={4}
-                    max={500}
-                    value={genNodes}
-                    onChange={(e) => setGenNodes(Math.max(4, Math.min(500, parseInt(e.target.value) || 4)))}
-                    className="select-field"
-                    style={{ width: '50px', height: '24px', fontSize: '10px', fontFamily: 'var(--font-mono)' }}
-                    title="Number of vertices (4 - 500)"
-                  />
-                </div>
-                <button
-                  onClick={handleGenerateSyntheticCanvas}
-                  disabled={isGeneratingCanvas}
-                  className="btn-primary"
-                  style={{ height: '24px', fontSize: '10px' }}
-                >
-                  {isGeneratingCanvas ? 'Generating...' : 'Synthesize to Canvas'}
-                </button>
-              </div>
-            )}
 
             <select
               value={selectedPresetId}
@@ -1504,10 +1355,10 @@ export const App: React.FC = () => {
             <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Technical Benchmark Report
+                  Comparative Analysis Report
                 </div>
                 <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px' }}>
-                  Multi-Algorithm Benchmark
+                  Multi-Algorithm Analysis
                 </div>
               </div>
 
@@ -1575,7 +1426,7 @@ export const App: React.FC = () => {
                 </div>
               ) : (
                 <div style={{ color: 'var(--text-muted)', fontSize: '11px', fontFamily: 'var(--font-mono)' }}>
-                  Click "Compare All Algorithms" in the controls panel to benchmark Dijkstra, A*, BFS, and DFS side-by-side.
+                  Click "Compare All Algorithms" in the controls panel to compare Dijkstra, A*, BFS, and DFS side-by-side.
                 </div>
               )}
             </div>
@@ -1767,8 +1618,6 @@ export const App: React.FC = () => {
           ))}
         </div>
       </footer>
-      </>
-      )}
     </div>
   );
 };

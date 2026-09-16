@@ -23,8 +23,6 @@ add_library(pathforge_core STATIC
     src/algorithm/Dijkstra.cpp
     src/algorithm/Heuristics.cpp
     src/algorithm/AStar.cpp
-    src/benchmark/GraphGenerator.cpp
-    src/benchmark/Benchmark.cpp
     src/ipc/JsonBridge.cpp
 )
 
