@@ -220,9 +220,12 @@ export const App: React.FC = () => {
 
     setIsLoading(true);
     setErrorMessage(null);
-    handleResetExecution();
+    resetPlayback();
+    setSelectedNodeId(null);
+    setSelectedEdgeId(null);
+    setEdgeStartNode(null);
 
-    const payload: PathfindRequest = {
+    const pathfindPayload: PathfindRequest = {
       algorithm: selectedAlgorithm,
       heuristic: selectedAlgorithm === 'astar' ? selectedHeuristic : undefined,
       source: sourceNode,
@@ -245,27 +248,6 @@ export const App: React.FC = () => {
       },
     };
 
-    const response = await runPathfind(payload);
-    setIsLoading(false);
-
-    if (response.success && response.data) {
-      setResult(response.data);
-    } else {
-      setErrorMessage(response.error?.message || 'Algorithm execution failed.');
-    }
-  }, [nodes, edges, isDirected, isWeighted, sourceNode, destinationNode, selectedAlgorithm, selectedHeuristic, handleResetExecution]);
-
-  // --- 12. Execute Multi-Algorithm Comparison (/api/compare) ---
-  const handleCompareAlgorithms = useCallback(async () => {
-    if (nodes.length === 0) {
-      setErrorMessage('Cannot compare algorithms on an empty graph.');
-      return;
-    }
-
-    setIsLoading(true);
-    setErrorMessage(null);
-    handleResetExecution();
-
     const algorithmsToCompare: { algorithm: string; heuristic?: string }[] = [
       { algorithm: 'dijkstra' },
       { algorithm: 'astar', heuristic: selectedHeuristic },
@@ -275,7 +257,7 @@ export const App: React.FC = () => {
       algorithmsToCompare.push({ algorithm: 'dfs' });
     }
 
-    const payload: CompareRequest = {
+    const comparePayload: CompareRequest = {
       algorithms: algorithmsToCompare,
       source: sourceNode,
       target: destinationNode,
@@ -287,15 +269,73 @@ export const App: React.FC = () => {
       },
     };
 
-    const response = await runCompare(payload);
-    setIsLoading(false);
+    try {
+      const [pathfindResponse, compareResponse] = await Promise.all([
+        runPathfind(pathfindPayload),
+        runCompare(comparePayload),
+      ]);
+      setIsLoading(false);
 
-    if (response.success && response.data) {
-      setCompareResult(response.data);
-    } else {
-      setErrorMessage(response.error?.message || 'Algorithm comparison failed.');
+      if (pathfindResponse.success && pathfindResponse.data) {
+        setResult(pathfindResponse.data);
+      } else {
+        setErrorMessage(pathfindResponse.error?.message || 'Algorithm execution failed.');
+      }
+
+      if (compareResponse.success && compareResponse.data) {
+        setCompareResult(compareResponse.data);
+      }
+    } catch {
+      setIsLoading(false);
+      setErrorMessage('Algorithm execution failed.');
     }
-  }, [nodes, edges, isDirected, isWeighted, sourceNode, destinationNode, selectedHeuristic, handleResetExecution]);
+  }, [nodes, edges, isDirected, isWeighted, sourceNode, destinationNode, selectedAlgorithm, selectedHeuristic, resetPlayback]);
+
+  // --- 12. Execute Multi-Algorithm Comparison (/api/compare) ---
+  const handleCompareAlgorithms = useCallback(async () => {
+    if (nodes.length === 0) {
+      setErrorMessage('Cannot compare algorithms on an empty graph.');
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    const algorithmsToCompare: { algorithm: string; heuristic?: string }[] = [
+      { algorithm: 'dijkstra' },
+      { algorithm: 'astar', heuristic: selectedHeuristic },
+    ];
+    if (!isWeighted && !isDirected) {
+      algorithmsToCompare.push({ algorithm: 'bfs' });
+      algorithmsToCompare.push({ algorithm: 'dfs' });
+    }
+
+    const comparePayload: CompareRequest = {
+      algorithms: algorithmsToCompare,
+      source: sourceNode,
+      target: destinationNode,
+      graph: {
+        directed: isDirected,
+        weighted: isWeighted,
+        nodes: nodes.map((n) => ({ id: n.id, label: n.label, x: n.x, y: n.y })),
+        edges: edges.map((e) => ({ source: e.source, target: e.target, weight: isWeighted ? e.weight : 1.0 })),
+      },
+    };
+
+    try {
+      const compareResponse = await runCompare(comparePayload);
+      setIsLoading(false);
+
+      if (compareResponse.success && compareResponse.data) {
+        setCompareResult(compareResponse.data);
+      } else {
+        setErrorMessage(compareResponse.error?.message || 'Algorithm comparison failed.');
+      }
+    } catch {
+      setIsLoading(false);
+      setErrorMessage('Algorithm comparison failed.');
+    }
+  }, [nodes, edges, isDirected, isWeighted, sourceNode, destinationNode, selectedHeuristic]);
 
   // --- 13. Derived Visualization State (Memoized for high performance) ---
   const currentStep = useMemo(() => {
@@ -560,18 +600,6 @@ export const App: React.FC = () => {
               >
                 Algorithm Comparison
               </span>
-              {compareResult && (
-                <span
-                  style={{
-                    fontSize: '10px',
-                    fontFamily: 'var(--font-mono)',
-                    color: compareResult.costParity ? 'var(--color-success)' : 'var(--color-warning)',
-                    fontWeight: 600,
-                  }}
-                >
-                  {compareResult.costParity ? 'PARITY' : 'DISCREPANCY'}
-                </span>
-              )}
             </div>
             <ComparisonPanel
               compareResult={compareResult}

@@ -30,11 +30,11 @@ describe('TelemetryPanel', () => {
   };
 
   it('renders waiting state when result is null', () => {
-    render(<TelemetryPanel result={null} currentStep={undefined} currentStepIndex={0} />);
+    render(<TelemetryPanel result={null} currentStepIndex={0} />);
     expect(screen.getByText(/No Execution Results/i)).toBeInTheDocument();
   });
 
-  it('renders optimal route badge and metrics when result is present', () => {
+  it('renders only Total Cost, Nodes Visited, and Reconstructed Path Sequence when result is present', () => {
     render(
       <TelemetryPanel
         result={mockResult}
@@ -42,34 +42,32 @@ describe('TelemetryPanel', () => {
         currentStepIndex={0}
       />
     );
-    expect(screen.getByText(/Optimal Route Found/i)).toBeInTheDocument();
-    expect(screen.getByText('4.50')).toBeInTheDocument(); // total cost
-    expect(screen.getByText('6')).toBeInTheDocument(); // visited nodes
-    expect(screen.getByText('8')).toBeInTheDocument(); // relaxed edges
-    expect(screen.getByText(/0.320/)).toBeInTheDocument(); // kernel duration
-  });
 
-  it('displays the path sequence correctly', () => {
-    render(
-      <TelemetryPanel
-        result={mockResult}
-        currentStep={mockResult.steps[0]}
-        currentStepIndex={0}
-      />
-    );
+    // Explicitly expected data
+    expect(screen.getByText('Total Cost')).toBeInTheDocument();
+    expect(screen.getByText('4.50')).toBeInTheDocument();
+    expect(screen.getByText('Nodes Visited')).toBeInTheDocument();
+    expect(screen.getByText('6')).toBeInTheDocument();
+    expect(screen.getByText(/Reconstructed Path Sequence/i)).toBeInTheDocument();
     expect(screen.getByText('A')).toBeInTheDocument();
     expect(screen.getByText('C')).toBeInTheDocument();
     expect(screen.getByText('B')).toBeInTheDocument();
+
+    // Explicitly forbidden data
+    expect(screen.queryByText(/Optimal Route Found/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Execution Time/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Edges Examined/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Edge Relaxations/i)).not.toBeInTheDocument();
   });
 
-  it('renders "No Route Exists" when found is false', () => {
+  it('renders "No route exists" when found is false', () => {
     const noPathResult: PathfindResult = {
       ...mockResult,
       found: false,
       path: [],
       cost: null,
     };
-    render(<TelemetryPanel result={noPathResult} currentStep={undefined} currentStepIndex={0} />);
-    expect(screen.getByText(/No Route Exists/i)).toBeInTheDocument();
+    render(<TelemetryPanel result={noPathResult} currentStepIndex={0} />);
+    expect(screen.getByText(/No route exists/i)).toBeInTheDocument();
   });
 });
