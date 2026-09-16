@@ -1,27 +1,17 @@
 import React from 'react';
 
 export interface HeaderProps {
-  activeTab: 'telemetry' | 'comparison' | 'trace' | 'system';
-  onTabChange: (tab: 'telemetry' | 'comparison' | 'trace' | 'system') => void;
-  stepCount: number;
+  activeTab: 'telemetry' | 'comparison' | 'system';
+  onTabChange: (tab: 'telemetry' | 'comparison' | 'system') => void;
   onClearGraph: () => void;
-  onImportClick: () => void;
-  onExportGraph: () => void;
-  onExportExperiment: () => void;
-  hasResult: boolean;
-  hasNodes: boolean;
+  onGenerateRandomGraph: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = React.memo(({
   activeTab,
   onTabChange,
-  stepCount,
   onClearGraph,
-  onImportClick,
-  onExportGraph,
-  onExportExperiment,
-  hasResult,
-  hasNodes,
+  onGenerateRandomGraph,
 }) => {
   return (
     <header
@@ -86,29 +76,6 @@ export const Header: React.FC<HeaderProps> = React.memo(({
           </button>
           <button
             type="button"
-            onClick={() => onTabChange('trace')}
-            className={activeTab === 'trace' ? 'tab-active' : 'tab-inactive'}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', height: '28px', padding: '0 10px', fontSize: '12px' }}
-          >
-            <span>Step Trace</span>
-            {stepCount > 0 && (
-              <span
-                style={{
-                  fontSize: '9px',
-                  fontFamily: 'var(--font-mono)',
-                  padding: '1px 5px',
-                  borderRadius: '10px',
-                  backgroundColor: activeTab === 'trace' ? 'var(--accent-primary)' : 'var(--bg-elevated)',
-                  color: activeTab === 'trace' ? '#111315' : 'var(--accent-primary)',
-                  fontWeight: 700,
-                }}
-              >
-                {stepCount}
-              </span>
-            )}
-          </button>
-          <button
-            type="button"
             onClick={() => onTabChange('comparison')}
             className={activeTab === 'comparison' ? 'tab-active' : 'tab-inactive'}
             style={{ height: '28px', padding: '0 10px', fontSize: '12px' }}
@@ -126,7 +93,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
         </nav>
       </div>
 
-      {/* Right: Canvas Actions & Portability Quick Buttons */}
+      {/* Right: Canvas Actions (Clear Canvas & Generate Random Graph) */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <button
           type="button"
@@ -138,38 +105,21 @@ export const Header: React.FC<HeaderProps> = React.memo(({
           Clear Canvas
         </button>
 
-        <div style={{ height: '18px', width: '1px', backgroundColor: 'var(--border)' }} />
-
         <button
           type="button"
-          onClick={onImportClick}
+          onClick={onGenerateRandomGraph}
           className="btn-secondary"
-          style={{ height: '26px', fontSize: '11px', padding: '0 8px' }}
-          title="Import graph JSON file"
+          style={{
+            height: '26px',
+            fontSize: '11px',
+            padding: '0 10px',
+            color: 'var(--accent-primary)',
+            borderColor: 'var(--accent-muted)',
+          }}
+          title="Clear and generate a new valid random graph"
         >
-          Import
+          Generate Random Graph
         </button>
-        <button
-          type="button"
-          onClick={onExportGraph}
-          disabled={!hasNodes}
-          className="btn-secondary"
-          style={{ height: '26px', fontSize: '11px', padding: '0 8px' }}
-          title="Export graph to JSON"
-        >
-          Export
-        </button>
-        {hasResult && (
-          <button
-            type="button"
-            onClick={onExportExperiment}
-            className="btn-secondary"
-            style={{ height: '26px', fontSize: '11px', padding: '0 8px', borderColor: 'var(--accent-muted)' }}
-            title="Export complete experiment snapshot to JSON"
-          >
-            Snapshot
-          </button>
-        )}
       </div>
     </header>
   );

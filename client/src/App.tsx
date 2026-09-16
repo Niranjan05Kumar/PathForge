@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   CanvasNode,
   CanvasEdge,
@@ -9,8 +9,7 @@ import {
 } from './types/graph';
 import { runPathfind, runCompare } from './services/api';
 import { usePlayback } from './hooks/usePlayback';
-import { parseAndValidateGraphJson } from './utils/import';
-import { exportGraphJson, exportExperimentJson } from './utils/export';
+import { generateRandomGraph } from './utils/graphGenerator';
 
 // Decomposed Modular Components
 import { Header } from './components/Header';
@@ -19,7 +18,6 @@ import { GraphCanvas } from './components/GraphCanvas';
 import { PlaybackControls } from './components/PlaybackControls';
 import { TelemetryPanel } from './components/TelemetryPanel';
 import { ComparisonPanel } from './components/ComparisonPanel';
-import { TraceLogPanel } from './components/TraceLogPanel';
 import { SystemConsolePanel } from './components/SystemConsolePanel';
 import { EdgeWeightModal } from './components/EdgeWeightModal';
 
@@ -57,7 +55,7 @@ export const App: React.FC = () => {
   const [destinationNode, setDestinationNode] = useState<string>('F');
 
   // --- 4. UI Modes & Selection ---
-  const [activeTab, setActiveTab] = useState<'telemetry' | 'comparison' | 'trace' | 'system'>('telemetry');
+  const [activeTab, setActiveTab] = useState<'telemetry' | 'comparison' | 'system'>('telemetry');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<CanvasTool>('select');
@@ -65,8 +63,6 @@ export const App: React.FC = () => {
 
   // Modal State (replaces window.prompt/alert)
   const [editingEdge, setEditingEdge] = useState<CanvasEdge | null>(null);
-
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // --- 5. Execution & Results State ---
   const [result, setResult] = useState<PathfindResult | null>(null);
@@ -188,47 +184,18 @@ export const App: React.FC = () => {
     handleResetExecution();
   }, [selectedEdgeId, handleResetExecution]);
 
-  // --- 10. File Import & Export ---
-  const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const content = e.target?.result as string;
-      const parseRes = parseAndValidateGraphJson(content);
-      if (parseRes.success && parseRes.nodes && parseRes.edges) {
-        setNodes(parseRes.nodes);
-        setEdges(parseRes.edges);
-        setIsDirected(parseRes.directed ?? false);
-        setIsWeighted(parseRes.weighted ?? true);
-        if (parseRes.nodes.length > 0) {
-          setSourceNode(parseRes.nodes[0].id);
-          setDestinationNode(parseRes.nodes[parseRes.nodes.length - 1].id);
-        }
-        handleResetExecution();
-      } else {
-        setErrorMessage(parseRes.error || 'Failed to parse graph JSON file.');
-      }
-    };
-    reader.readAsText(file);
-    event.target.value = '';
-  };
-
-  const handleExportGraph = useCallback(() => {
-    exportGraphJson(nodes, edges, isDirected, isWeighted);
-  }, [nodes, edges, isDirected, isWeighted]);
-
-  const handleExportExperiment = useCallback(() => {
-    if (!result) return;
-    exportExperimentJson(
-      nodes,
-      edges,
+  // --- 10. Random Graph Generator ---
+  const handleGenerateRandomGraph = useCallback(() => {
+    handleResetExecution();
+    const generated = generateRandomGraph({
       isDirected,
       isWeighted,
-      result
-    );
-  }, [nodes, edges, isDirected, isWeighted, result]);
+    });
+    setNodes(generated.nodes);
+    setEdges(generated.edges);
+    setSourceNode(generated.sourceNode);
+    setDestinationNode(generated.destinationNode);
+  }, [handleResetExecution, isDirected, isWeighted]);
 
   // --- 11. Execute Native C++ Algorithm (/api/pathfind) ---
   const handleRunAlgorithm = useCallback(async () => {
@@ -391,27 +358,12 @@ export const App: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden', backgroundColor: 'var(--bg-primary)' }}>
-      {/* Hidden File Input for JSON import */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        accept=".json"
-        onChange={handleFileImport}
-        style={{ display: 'none' }}
-        aria-label="Upload JSON Graph File"
-      />
-
       {/* 1. Header Bar */}
       <Header
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        stepCount={result?.steps ? result.steps.length : 0}
         onClearGraph={handleClearGraph}
-        onImportClick={() => fileInputRef.current?.click()}
-        onExportGraph={handleExportGraph}
-        onExportExperiment={handleExportExperiment}
-        hasResult={Boolean(result)}
-        hasNodes={nodes.length > 0}
+        onGenerateRandomGraph={handleGenerateRandomGraph}
       />
 
       {/* Error Notification Banner */}
@@ -534,14 +486,6 @@ export const App: React.FC = () => {
               compareResult={compareResult}
               onRunCompare={handleCompareAlgorithms}
               isLoading={isLoading}
-            />
-          )}
-
-          {activeTab === 'trace' && (
-            <TraceLogPanel
-              steps={result?.steps || []}
-              currentStepIndex={currentStepIndex}
-              onSelectStep={seek}
             />
           )}
 
