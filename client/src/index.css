@@ -368,25 +368,6 @@ select option {
   }
 }
 
-/* Tab Navigation Buttons */
-.tab-active {
-  background-color: var(--bg-elevated);
-  color: var(--accent-primary);
-  border-color: var(--border);
-  font-weight: 600;
-}
-
-.tab-inactive {
-  background-color: transparent;
-  color: var(--text-secondary);
-  border-color: transparent;
-}
-
-.tab-inactive:hover {
-  background-color: var(--bg-elevated);
-  color: var(--text-primary);
-}
-
 /* Modal Dialog Animations */
 .modal-backdrop {
   animation: fadeIn 0.15s ease-out;

@@ -18,7 +18,6 @@ import { GraphCanvas } from './components/GraphCanvas';
 import { PlaybackControls } from './components/PlaybackControls';
 import { TelemetryPanel } from './components/TelemetryPanel';
 import { ComparisonPanel } from './components/ComparisonPanel';
-import { SystemConsolePanel } from './components/SystemConsolePanel';
 import { EdgeWeightModal } from './components/EdgeWeightModal';
 
 const INITIAL_NODES: CanvasNode[] = [
@@ -55,7 +54,6 @@ export const App: React.FC = () => {
   const [destinationNode, setDestinationNode] = useState<string>('F');
 
   // --- 4. UI Modes & Selection ---
-  const [activeTab, setActiveTab] = useState<'telemetry' | 'comparison' | 'system'>('telemetry');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<CanvasTool>('select');
@@ -252,7 +250,6 @@ export const App: React.FC = () => {
 
     if (response.success && response.data) {
       setResult(response.data);
-      setActiveTab('telemetry');
     } else {
       setErrorMessage(response.error?.message || 'Algorithm execution failed.');
     }
@@ -295,7 +292,6 @@ export const App: React.FC = () => {
 
     if (response.success && response.data) {
       setCompareResult(response.data);
-      setActiveTab('comparison');
     } else {
       setErrorMessage(response.error?.message || 'Algorithm comparison failed.');
     }
@@ -376,8 +372,6 @@ export const App: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden', backgroundColor: 'var(--bg-primary)' }}>
       {/* 1. Header Bar */}
       <Header
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
         onClearGraph={handleClearGraph}
         onGenerateRandomGraph={handleGenerateRandomGraph}
       />
@@ -495,25 +489,96 @@ export const App: React.FC = () => {
           />
         </GraphCanvas>
 
-        {/* Right Column: Telemetry, Comparison, Trace & Console Panel */}
+        {/* Right Column: Telemetry & Comparison Panel (Direct, without tabs) */}
         <aside className="workbench-results-panel" aria-label="Analytical Results and Telemetry">
-          {activeTab === 'telemetry' && (
+          {/* Section 1: Workspace / Pathfinding Telemetry */}
+          <div className="results-section">
+            <div
+              style={{
+                padding: '8px 14px',
+                borderBottom: '1px solid var(--border-subtle)',
+                backgroundColor: 'var(--bg-elevated)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                Workspace Telemetry
+              </span>
+              {result && (
+                <span
+                  style={{
+                    fontSize: '10px',
+                    fontFamily: 'var(--font-mono)',
+                    color: result.found ? 'var(--color-success)' : 'var(--color-error)',
+                    fontWeight: 600,
+                  }}
+                >
+                  {result.algorithm.toUpperCase()}
+                </span>
+              )}
+            </div>
             <TelemetryPanel
               result={result}
               currentStep={currentStep}
               currentStepIndex={currentStepIndex}
             />
-          )}
+          </div>
 
-          {activeTab === 'comparison' && (
+          <div style={{ height: '1px', backgroundColor: 'var(--border)', flexShrink: 0 }} />
+
+          {/* Section 2: Multi-Algorithm Comparison */}
+          <div className="results-section">
+            <div
+              style={{
+                padding: '8px 14px',
+                borderBottom: '1px solid var(--border-subtle)',
+                borderTop: '1px solid var(--border-subtle)',
+                backgroundColor: 'var(--bg-elevated)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                Algorithm Comparison
+              </span>
+              {compareResult && (
+                <span
+                  style={{
+                    fontSize: '10px',
+                    fontFamily: 'var(--font-mono)',
+                    color: compareResult.costParity ? 'var(--color-success)' : 'var(--color-warning)',
+                    fontWeight: 600,
+                  }}
+                >
+                  {compareResult.costParity ? 'PARITY' : 'DISCREPANCY'}
+                </span>
+              )}
+            </div>
             <ComparisonPanel
               compareResult={compareResult}
               onRunCompare={handleCompareAlgorithms}
               isLoading={isLoading}
             />
-          )}
-
-          {activeTab === 'system' && <SystemConsolePanel />}
+          </div>
         </aside>
       </div>
 
