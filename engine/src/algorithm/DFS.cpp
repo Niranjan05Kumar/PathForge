@@ -108,10 +108,10 @@ AlgorithmResult DFS::run(
         parent[u] = p;
         result.metrics.nodesVisited++;
 
-        std::string uId = graph.getNodeId(u);
-        visitedOrder.push_back(uId);
-
+        std::string uId;
         if (options.recordTrace) {
+            uId = graph.getNodeId(u);
+            visitedOrder.push_back(uId);
             result.steps.emplace_back(stepCounter++, "visit_node", uId, "", 0.0,
                 getFrontierIds(), visitedOrder,
                 "Popped and visited node '" + uId + "'; expanding outgoing edges.");
@@ -121,19 +121,16 @@ AlgorithmResult DFS::run(
             break;
         }
 
-        // Retrieve and sort neighbors alphabetically
-        std::vector<Edge> neighbors = graph.getNeighbors(u);
-        std::sort(neighbors.begin(), neighbors.end(), [&](const Edge& a, const Edge& b) {
-            return graph.getNodeId(a.target) < graph.getNodeId(b.target);
-        });
+        // Neighbors are maintained in deterministic sorted order by target node ID
+        const auto& neighbors = graph.getNeighbors(u);
 
         // Push in reverse order so lowest alphabetical target pops first (LIFO order)
         for (auto it = neighbors.rbegin(); it != neighbors.rend(); ++it) {
             int v = it->target;
-            std::string vId = graph.getNodeId(v);
             result.metrics.edgesExamined++;
 
             if (options.recordTrace) {
+                std::string vId = graph.getNodeId(v);
                 result.steps.emplace_back(stepCounter++, "examine_edge", uId, vId, it->weight,
                     getFrontierIds(), visitedOrder,
                     "Examining edge '" + uId + "' -> '" + vId + "' [weight: " + formatDouble(it->weight) + "].");
@@ -143,6 +140,7 @@ AlgorithmResult DFS::run(
                 stack.emplace_back(v, u, it->weight);
 
                 if (options.recordTrace) {
+                    std::string vId = graph.getNodeId(v);
                     result.steps.emplace_back(stepCounter++, "push_node", vId, "", it->weight,
                         getFrontierIds(), visitedOrder,
                         "Pushed neighbor '" + vId + "' onto stack with predecessor '" + uId + "'.");

@@ -87,10 +87,10 @@ AlgorithmResult BFS::run(
         frontierQueue.pop_front();
 
         result.metrics.nodesVisited++;
-        std::string uId = graph.getNodeId(u);
-        visitedOrder.push_back(uId);
-
+        std::string uId;
         if (options.recordTrace) {
+            uId = graph.getNodeId(u);
+            visitedOrder.push_back(uId);
             result.steps.emplace_back(stepCounter++, "visit_node", uId, "", 0.0,
                 getFrontierIds(), visitedOrder,
                 "Visited node '" + uId + "'; inspecting outgoing neighbors.");
@@ -100,18 +100,15 @@ AlgorithmResult BFS::run(
             break;
         }
 
-        // Sort neighbors deterministically by target node ID
-        std::vector<Edge> neighbors = graph.getNeighbors(u);
-        std::sort(neighbors.begin(), neighbors.end(), [&](const Edge& a, const Edge& b) {
-            return graph.getNodeId(a.target) < graph.getNodeId(b.target);
-        });
+        // Neighbors are maintained in deterministic sorted order by target node ID
+        const auto& neighbors = graph.getNeighbors(u);
 
         for (const auto& edge : neighbors) {
             int v = edge.target;
-            std::string vId = graph.getNodeId(v);
             result.metrics.edgesExamined++;
 
             if (options.recordTrace) {
+                std::string vId = graph.getNodeId(v);
                 result.steps.emplace_back(stepCounter++, "examine_edge", uId, vId, edge.weight,
                     getFrontierIds(), visitedOrder,
                     "Examining edge '" + uId + "' -> '" + vId + "' [weight: " + formatDouble(edge.weight) + "].");
@@ -123,6 +120,7 @@ AlgorithmResult BFS::run(
                 frontierQueue.push_back(v);
 
                 if (options.recordTrace) {
+                    std::string vId = graph.getNodeId(v);
                     result.steps.emplace_back(stepCounter++, "enqueue_node", vId, "", edge.weight,
                         getFrontierIds(), visitedOrder,
                         "Enqueued node '" + vId + "' with predecessor '" + uId + "'.");

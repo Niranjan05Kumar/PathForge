@@ -44,6 +44,7 @@ public:
     void addEdge(const std::string& source, const std::string& target, double weight = 1.0);
     bool removeEdge(const std::string& source, const std::string& target);
     bool hasEdge(const std::string& source, const std::string& target) const;
+    bool hasEdge(int u, int v) const;
     double getEdgeWeight(const std::string& source, const std::string& target) const;
     void setEdgeWeight(const std::string& source, const std::string& target, double weight);
 
@@ -55,5 +56,6 @@ public:
     const std::vector<Node>& getAllNodes() const { return nodes; }
     std::vector<ExternalEdge> getAllEdges() const;
 
+    void sortAdjacencyLists();
     void clear();
 };

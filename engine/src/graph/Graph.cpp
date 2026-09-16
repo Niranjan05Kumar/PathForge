@@ -152,19 +152,29 @@ void Graph::addEdge(const std::string& source, const std::string& target, double
         throw std::invalid_argument("Self-loops are not allowed: " + source + " -> " + target);
     }
 
-    if (!config.allowDuplicateEdges && hasEdge(source, target)) {
+    if (!config.allowDuplicateEdges && hasEdge(u, v)) {
         throw std::invalid_argument("Duplicate edge not allowed between '" + source + "' and '" + target + "'.");
     }
 
     double actualWeight = config.weighted ? weight : 1.0;
 
+    auto insertSorted = [&](int from, int to, double w) {
+        const std::string& toId = nodes[to].id;
+        auto& edges = adjacencyList[from];
+        auto it = std::lower_bound(edges.begin(), edges.end(), toId,
+            [this](const Edge& e, const std::string& id) {
+                return nodes[e.target].id < id;
+            });
+        edges.insert(it, Edge(to, w));
+    };
+
     if (config.directed) {
-        adjacencyList[u].emplace_back(v, actualWeight);
+        insertSorted(u, v, actualWeight);
         edgeCount++;
     } else {
-        adjacencyList[u].emplace_back(v, actualWeight);
+        insertSorted(u, v, actualWeight);
         if (u != v) {
-            adjacencyList[v].emplace_back(u, actualWeight);
+            insertSorted(v, u, actualWeight);
         }
         edgeCount++;
     }
@@ -201,17 +211,39 @@ bool Graph::removeEdge(const std::string& source, const std::string& target) {
     return true;
 }
 
-bool Graph::hasEdge(const std::string& source, const std::string& target) const {
-    if (!hasNode(source) || !hasNode(target)) {
+bool Graph::hasEdge(int u, int v) const {
+    if (u < 0 || static_cast<size_t>(u) >= adjacencyList.size()) {
+        return false;
+    }
+    if (v < 0 || static_cast<size_t>(v) >= nodes.size()) {
         return false;
     }
 
-    int u = nodeToIndex.at(source);
-    int v = nodeToIndex.at(target);
-
     const auto& edges = adjacencyList[u];
-    return std::any_of(edges.begin(), edges.end(),
-        [v](const Edge& e) { return e.target == v; });
+    const std::string& targetId = nodes[v].id;
+    auto it = std::lower_bound(edges.begin(), edges.end(), targetId,
+        [this](const Edge& e, const std::string& id) {
+            return nodes[e.target].id < id;
+        });
+    return (it != edges.end() && it->target == v);
+}
+
+bool Graph::hasEdge(const std::string& source, const std::string& target) const {
+    auto itU = nodeToIndex.find(source);
+    auto itV = nodeToIndex.find(target);
+    if (itU == nodeToIndex.end() || itV == nodeToIndex.end()) {
+        return false;
+    }
+    return hasEdge(itU->second, itV->second);
+}
+
+void Graph::sortAdjacencyLists() {
+    for (size_t u = 0; u < adjacencyList.size(); ++u) {
+        std::sort(adjacencyList[u].begin(), adjacencyList[u].end(),
+            [this](const Edge& a, const Edge& b) {
+                return nodes[a.target].id < nodes[b.target].id;
+            });
+    }
 }
 
 double Graph::getEdgeWeight(const std::string& source, const std::string& target) const {

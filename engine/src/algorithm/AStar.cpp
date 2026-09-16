@@ -118,13 +118,12 @@ AlgorithmResult AStar::run(
         closed[u] = true;
         result.metrics.nodesVisited++;
 
-        std::string uId = graph.getNodeId(u);
-        visitedOrder.push_back(uId);
-
-        const Node& uNode = graph.getNode(u);
-        double uH = Heuristics::evaluate(options.heuristic, uNode, targetNode);
-
+        std::string uId;
         if (options.recordTrace) {
+            uId = graph.getNodeId(u);
+            visitedOrder.push_back(uId);
+            const Node& uNode = graph.getNode(u);
+            double uH = Heuristics::evaluate(options.heuristic, uNode, targetNode);
             result.steps.emplace_back(stepCounter++, "visit_node", uId, "", 0.0,
                 getFrontierIds(), visitedOrder,
                 "Extracted node '" + uId + "' with minimum tentative score [f=" +
@@ -136,15 +135,11 @@ AlgorithmResult AStar::run(
             break;
         }
 
-        // Retrieve and sort neighbors deterministically
-        std::vector<Edge> neighbors = graph.getNeighbors(u);
-        std::sort(neighbors.begin(), neighbors.end(), [&](const Edge& a, const Edge& b) {
-            return graph.getNodeId(a.target) < graph.getNodeId(b.target);
-        });
+        // Neighbors are maintained in deterministic sorted order by target node ID
+        const auto& neighbors = graph.getNeighbors(u);
 
         for (const auto& edge : neighbors) {
             int v = edge.target;
-            std::string vId = graph.getNodeId(v);
             result.metrics.edgesExamined++;
 
             if (edge.weight < 0.0) {
@@ -153,6 +148,7 @@ AlgorithmResult AStar::run(
             }
 
             if (options.recordTrace) {
+                std::string vId = graph.getNodeId(v);
                 result.steps.emplace_back(stepCounter++, "examine_edge", uId, vId, edge.weight,
                     getFrontierIds(), visitedOrder,
                     "Evaluating edge '" + uId + "' -> '" + vId + "' [weight: " + formatDouble(edge.weight) + "].");
@@ -180,6 +176,7 @@ AlgorithmResult AStar::run(
                 }
 
                 if (options.recordTrace) {
+                    std::string vId = graph.getNodeId(v);
                     result.steps.emplace_back(stepCounter++, "relax_edge", uId, vId, edge.weight,
                         getFrontierIds(), visitedOrder,
                         "Relaxed edge '" + uId + "' -> '" + vId + "': updated g from " +

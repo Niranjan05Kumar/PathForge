@@ -10,7 +10,7 @@ const SUPPORTED_ALGORITHMS = new Set(['bfs', 'dfs', 'dijkstra', 'astar']);
 const SUPPORTED_HEURISTICS = new Set(['zero', 'euclidean', 'manhattan']);
 
 export function validatePathfindRequest(body: any): ValidationResult {
-  if (!body || typeof body !== 'object') {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return {
       valid: false,
       error: { code: 'INVALID_PAYLOAD', message: 'Request body must be a valid JSON object.' }
@@ -44,21 +44,21 @@ export function validatePathfindRequest(body: any): ValidationResult {
     }
   }
 
-  if (!source || typeof source !== 'string') {
+  if (!source || typeof source !== 'string' || !source.trim()) {
     return {
       valid: false,
       error: { code: 'MISSING_FIELD', message: "Field 'source' is required and must be a non-empty string." }
     };
   }
 
-  if (!target || typeof target !== 'string') {
+  if (!target || typeof target !== 'string' || !target.trim()) {
     return {
       valid: false,
       error: { code: 'MISSING_FIELD', message: "Field 'target' is required and must be a non-empty string." }
     };
   }
 
-  if (!graph || typeof graph !== 'object') {
+  if (!graph || typeof graph !== 'object' || Array.isArray(graph)) {
     return {
       valid: false,
       error: { code: 'MISSING_FIELD', message: "Field 'graph' object is required." }
@@ -76,15 +76,22 @@ export function validatePathfindRequest(body: any): ValidationResult {
   const isGeometricHeuristic = normalizedAlgo === 'astar' && (heuristic || 'euclidean').toLowerCase() !== 'zero';
 
   for (const node of graph.nodes) {
-    if (!node || typeof node.id !== 'string' || !node.id.trim()) {
+    if (!node || typeof node !== 'object' || typeof node.id !== 'string' || !node.id.trim()) {
       return {
         valid: false,
         error: { code: 'INVALID_NODE', message: "Each node must have a valid non-empty 'id' string." }
       };
     }
 
+    if (nodeSet.has(node.id)) {
+      return {
+        valid: false,
+        error: { code: 'DUPLICATE_NODE', message: `Duplicate node ID '${node.id}' detected in graph.` }
+      };
+    }
+
     if (isGeometricHeuristic) {
-      if (typeof node.x !== 'number' || typeof node.y !== 'number' || isNaN(node.x) || isNaN(node.y)) {
+      if (typeof node.x !== 'number' || typeof node.y !== 'number' || isNaN(node.x) || isNaN(node.y) || !isFinite(node.x) || !isFinite(node.y)) {
         return {
           valid: false,
           error: {
@@ -113,8 +120,13 @@ export function validatePathfindRequest(body: any): ValidationResult {
   }
 
   if (Array.isArray(graph.edges)) {
+    const edgeSet = new Set<string>();
+    const isDirected = Boolean(graph.directed);
+    const allowSelfLoops = Boolean(graph.allowSelfLoops);
+    const allowDuplicateEdges = Boolean(graph.allowDuplicateEdges);
+
     for (const edge of graph.edges) {
-      if (!edge || typeof edge.source !== 'string' || typeof edge.target !== 'string') {
+      if (!edge || typeof edge !== 'object' || typeof edge.source !== 'string' || typeof edge.target !== 'string') {
         return {
           valid: false,
           error: { code: 'INVALID_EDGE', message: "Each edge must define string 'source' and 'target' properties." }
@@ -135,16 +147,58 @@ export function validatePathfindRequest(body: any): ValidationResult {
         };
       }
 
-      if (typeof edge.weight === 'number' && edge.weight < 0) {
+      if (!allowSelfLoops && edge.source === edge.target) {
         return {
           valid: false,
           error: {
-            code: 'NEGATIVE_EDGE_WEIGHT',
-            message: `Negative edge weight ${edge.weight} is not supported between '${edge.source}' and '${edge.target}'.`
+            code: 'SELF_LOOP_DISALLOWED',
+            message: `Self-loops are not allowed: '${edge.source}' -> '${edge.target}'.`
           }
         };
       }
+
+      const edgeKey = isDirected
+        ? `${edge.source}->${edge.target}`
+        : (edge.source < edge.target ? `${edge.source}--${edge.target}` : `${edge.target}--${edge.source}`);
+
+      if (!allowDuplicateEdges && edgeSet.has(edgeKey)) {
+        return {
+          valid: false,
+          error: {
+            code: 'DUPLICATE_EDGE',
+            message: `Duplicate edge detected between '${edge.source}' and '${edge.target}'.`
+          }
+        };
+      }
+      edgeSet.add(edgeKey);
+
+      if (typeof edge.weight !== 'undefined') {
+        if (typeof edge.weight !== 'number' || isNaN(edge.weight) || !isFinite(edge.weight)) {
+          return {
+            valid: false,
+            error: {
+              code: 'INVALID_EDGE_WEIGHT',
+              message: `Edge weight between '${edge.source}' and '${edge.target}' must be a valid finite number.`
+            }
+          };
+        }
+
+        if (edge.weight < 0) {
+          return {
+            valid: false,
+            error: {
+              code: 'NEGATIVE_EDGE_WEIGHT',
+              message: `Negative edge weight ${edge.weight} is not supported between '${edge.source}' and '${edge.target}'.`
+            }
+          };
+        }
+      }
     }
+  } else if (typeof graph.edges !== 'undefined') {
+    return {
+      valid: false,
+      error: { code: 'INVALID_GRAPH', message: "Field 'edges' must be an array if provided." }
+    };
   }
 
   return { valid: true };

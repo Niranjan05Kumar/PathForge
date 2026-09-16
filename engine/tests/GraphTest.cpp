@@ -307,3 +307,47 @@ TEST(GraphTest, ClearResetsAllStructures) {
     EXPECT_EQ(g.getEdgeCount(), 1u);
     EXPECT_TRUE(g.hasEdge("X", "Y"));
 }
+
+// --- 7. Fast Index-Based Queries and Sorting Invariants ---
+
+TEST(GraphTest, IndexBasedHasEdgeOperation) {
+    Graph g;
+    int a = g.addNode("A");
+    int b = g.addNode("B");
+    int c = g.addNode("C");
+
+    g.addEdge("A", "B", 1.0);
+
+    EXPECT_TRUE(g.hasEdge(a, b));
+    EXPECT_TRUE(g.hasEdge(b, a));
+    EXPECT_FALSE(g.hasEdge(a, c));
+    EXPECT_FALSE(g.hasEdge(b, c));
+    EXPECT_FALSE(g.hasEdge(-1, 0));
+    EXPECT_FALSE(g.hasEdge(0, 99));
+}
+
+TEST(GraphTest, SortedAdjacencyListMaintainsDeterministicOrder) {
+    GraphConfig config;
+    config.directed = true;
+    Graph g(config);
+
+    g.addNode("Root");
+    g.addNode("Delta");
+    g.addNode("Alpha");
+    g.addNode("Charlie");
+    g.addNode("Bravo");
+
+    // Add edges in random order
+    g.addEdge("Root", "Delta", 4.0);
+    g.addEdge("Root", "Alpha", 1.0);
+    g.addEdge("Root", "Charlie", 3.0);
+    g.addEdge("Root", "Bravo", 2.0);
+
+    const auto& neighbors = g.getNeighbors("Root");
+    ASSERT_EQ(neighbors.size(), 4u);
+    EXPECT_EQ(g.getNodeId(neighbors[0].target), "Alpha");
+    EXPECT_EQ(g.getNodeId(neighbors[1].target), "Bravo");
+    EXPECT_EQ(g.getNodeId(neighbors[2].target), "Charlie");
+    EXPECT_EQ(g.getNodeId(neighbors[3].target), "Delta");
+}
+

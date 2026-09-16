@@ -56,12 +56,3 @@ export async function runCompare(payload: CompareRequest): Promise<ApiResponse<C
   }
 }
 
-export async function checkHealth(): Promise<any> {
-  try {
-    const res = await fetch('/api/health');
-    return await res.json();
-  } catch (err: any) {
-    return { status: 'error', message: err.message };
-  }
-}
-

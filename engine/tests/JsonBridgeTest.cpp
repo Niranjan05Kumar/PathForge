@@ -9,7 +9,6 @@ TEST(JsonBridgeTest, ValidDijkstraRequest) {
         {"algorithm", "dijkstra"},
         {"source", "A"},
         {"target", "C"},
-        {"mode", "visualize"},
         {"graph", {
             {"directed", false},
             {"weighted", true},
@@ -101,4 +100,157 @@ TEST(JsonBridgeTest, NonExistentNodeRejected) {
 
     EXPECT_FALSE(response["success"].get<bool>());
     EXPECT_EQ(response["error"]["code"].get<std::string>(), "INVALID_NODE");
+}
+
+TEST(JsonBridgeTest, DuplicateNodeIdRejected) {
+    json request = {
+        {"algorithm", "bfs"},
+        {"source", "A"},
+        {"target", "B"},
+        {"graph", {
+            {"nodes", {
+                {{"id", "A"}},
+                {{"id", "B"}},
+                {{"id", "A"}} // Duplicate!
+            }},
+            {"edges", {
+                {{"source", "A"}, {"target", "B"}}
+            }}
+        }}
+    };
+
+    std::string responseStr = JsonBridge::processString(request.dump());
+    json response = json::parse(responseStr);
+
+    EXPECT_FALSE(response["success"].get<bool>());
+    EXPECT_EQ(response["error"]["code"].get<std::string>(), "DUPLICATE_NODE");
+}
+
+TEST(JsonBridgeTest, DuplicateEdgeRejected) {
+    json request = {
+        {"algorithm", "dijkstra"},
+        {"source", "A"},
+        {"target", "B"},
+        {"graph", {
+            {"directed", false},
+            {"allowDuplicateEdges", false},
+            {"nodes", {{{"id", "A"}}, {{"id", "B"}}}},
+            {"edges", {
+                {{"source", "A"}, {"target", "B"}, {"weight", 2.0}},
+                {{"source", "A"}, {"target", "B"}, {"weight", 3.0}}
+            }}
+        }}
+    };
+
+    std::string responseStr = JsonBridge::processString(request.dump());
+    json response = json::parse(responseStr);
+
+    EXPECT_FALSE(response["success"].get<bool>());
+    EXPECT_EQ(response["error"]["code"].get<std::string>(), "DUPLICATE_EDGE");
+}
+
+TEST(JsonBridgeTest, DisallowedSelfLoopRejected) {
+    json request = {
+        {"algorithm", "bfs"},
+        {"source", "A"},
+        {"target", "B"},
+        {"graph", {
+            {"allowSelfLoops", false},
+            {"nodes", {{{"id", "A"}}, {{"id", "B"}}}},
+            {"edges", {
+                {{"source", "A"}, {"target", "A"}, {"weight", 1.0}}
+            }}
+        }}
+    };
+
+    std::string responseStr = JsonBridge::processString(request.dump());
+    json response = json::parse(responseStr);
+
+    EXPECT_FALSE(response["success"].get<bool>());
+    EXPECT_EQ(response["error"]["code"].get<std::string>(), "SELF_LOOP_DISALLOWED");
+}
+
+TEST(JsonBridgeTest, NegativeEdgeWeightRejected) {
+    json request = {
+        {"algorithm", "dijkstra"},
+        {"source", "A"},
+        {"target", "B"},
+        {"graph", {
+            {"weighted", true},
+            {"nodes", {{{"id", "A"}}, {{"id", "B"}}}},
+            {"edges", {
+                {{"source", "A"}, {"target", "B"}, {"weight", -5.0}}
+            }}
+        }}
+    };
+
+    std::string responseStr = JsonBridge::processString(request.dump());
+    json response = json::parse(responseStr);
+
+    EXPECT_FALSE(response["success"].get<bool>());
+    EXPECT_EQ(response["error"]["code"].get<std::string>(), "NEGATIVE_EDGE_WEIGHT");
+}
+
+TEST(JsonBridgeTest, InvalidEdgeWeightNonNumericRejected) {
+    json request = {
+        {"algorithm", "dijkstra"},
+        {"source", "A"},
+        {"target", "B"},
+        {"graph", {
+            {"nodes", {{{"id", "A"}}, {{"id", "B"}}}},
+            {"edges", {
+                {{"source", "A"}, {"target", "B"}, {"weight", "not-a-number"}}
+            }}
+        }}
+    };
+
+    std::string responseStr = JsonBridge::processString(request.dump());
+    json response = json::parse(responseStr);
+
+    EXPECT_FALSE(response["success"].get<bool>());
+    EXPECT_EQ(response["error"]["code"].get<std::string>(), "INVALID_EDGE_WEIGHT");
+}
+
+TEST(JsonBridgeTest, InvalidEdgeEndpointReferenceRejected) {
+    json request = {
+        {"algorithm", "bfs"},
+        {"source", "A"},
+        {"target", "B"},
+        {"graph", {
+            {"nodes", {{{"id", "A"}}, {{"id", "B"}}}},
+            {"edges", {
+                {{"source", "A"}, {"target", "NonExistent"}, {"weight", 1.0}}
+            }}
+        }}
+    };
+
+    std::string responseStr = JsonBridge::processString(request.dump());
+    json response = json::parse(responseStr);
+
+    EXPECT_FALSE(response["success"].get<bool>());
+    EXPECT_EQ(response["error"]["code"].get<std::string>(), "INVALID_NODE");
+}
+
+TEST(JsonBridgeTest, NonObjectPayloadDoesNotCrash) {
+    std::string responseStr1 = JsonBridge::processString("[1, 2, 3]");
+    json response1 = json::parse(responseStr1);
+    EXPECT_FALSE(response1["success"].get<bool>());
+    EXPECT_EQ(response1["error"]["code"].get<std::string>(), "INVALID_PAYLOAD");
+
+    std::string responseStr2 = JsonBridge::processString("\"just a string\"");
+    json response2 = json::parse(responseStr2);
+    EXPECT_FALSE(response2["success"].get<bool>());
+    EXPECT_EQ(response2["error"]["code"].get<std::string>(), "INVALID_PAYLOAD");
+}
+
+TEST(JsonBridgeTest, StreamProcessingOutputsValidJson) {
+    std::stringstream in;
+    std::stringstream out;
+    in << "{\"invalid\": true}";
+
+    JsonBridge::processStream(in, out);
+    json response = json::parse(out.str());
+
+    EXPECT_FALSE(response["success"].get<bool>());
+    EXPECT_TRUE(response.contains("error"));
 }

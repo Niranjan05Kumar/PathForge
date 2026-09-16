@@ -101,10 +101,10 @@ AlgorithmResult Dijkstra::run(
         visited[u] = true;
         result.metrics.nodesVisited++;
 
-        std::string uId = graph.getNodeId(u);
-        visitedOrder.push_back(uId);
-
+        std::string uId;
         if (options.recordTrace) {
+            uId = graph.getNodeId(u);
+            visitedOrder.push_back(uId);
             result.steps.emplace_back(stepCounter++, "visit_node", uId, "", 0.0,
                 getFrontierIds(), visitedOrder,
                 "Extracted node '" + uId + "' with minimum tentative distance " + formatDouble(current.key) + ".");
@@ -114,15 +114,11 @@ AlgorithmResult Dijkstra::run(
             break;
         }
 
-        // Retrieve and sort neighbors deterministically by target ID
-        std::vector<Edge> neighbors = graph.getNeighbors(u);
-        std::sort(neighbors.begin(), neighbors.end(), [&](const Edge& a, const Edge& b) {
-            return graph.getNodeId(a.target) < graph.getNodeId(b.target);
-        });
+        // Neighbors are maintained in deterministic sorted order by target node ID
+        const auto& neighbors = graph.getNeighbors(u);
 
         for (const auto& edge : neighbors) {
             int v = edge.target;
-            std::string vId = graph.getNodeId(v);
             result.metrics.edgesExamined++;
 
             if (edge.weight < 0.0) {
@@ -131,6 +127,7 @@ AlgorithmResult Dijkstra::run(
             }
 
             if (options.recordTrace) {
+                std::string vId = graph.getNodeId(v);
                 result.steps.emplace_back(stepCounter++, "examine_edge", uId, vId, edge.weight,
                     getFrontierIds(), visitedOrder,
                     "Evaluating edge '" + uId + "' -> '" + vId + "' [weight: " + formatDouble(edge.weight) + "].");
@@ -154,6 +151,7 @@ AlgorithmResult Dijkstra::run(
                 }
 
                 if (options.recordTrace) {
+                    std::string vId = graph.getNodeId(v);
                     result.steps.emplace_back(stepCounter++, "relax_edge", uId, vId, edge.weight,
                         getFrontierIds(), visitedOrder,
                         "Relaxed edge '" + uId + "' -> '" + vId + "': updated distance from " +
