@@ -70,4 +70,78 @@ describe('ControlSidebar', () => {
     const runBtn = screen.getByRole('button', { name: /Computing Path/i });
     expect(runBtn).toBeDisabled();
   });
+
+  // --- Algorithm Availability Combinations (BFS & DFS rules) ---
+
+  it('Combination 1: Unweighted + Undirected -> BFS/DFS visible and selectable', () => {
+    render(
+      <ControlSidebar
+        {...defaultProps}
+        isWeighted={false}
+        isDirected={false}
+      />
+    );
+
+    // BFS and DFS must be visible
+    expect(screen.getByRole('option', { name: /Breadth-First Search/i })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /Depth-First Search/i })).toBeInTheDocument();
+
+    // Dijkstra and A* remain available
+    expect(screen.getByRole('option', { name: /Dijkstra's Algorithm/i })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /A\* Search/i })).toBeInTheDocument();
+  });
+
+  it('Combination 2: Weighted + Undirected -> BFS/DFS unavailable', () => {
+    render(
+      <ControlSidebar
+        {...defaultProps}
+        isWeighted={true}
+        isDirected={false}
+      />
+    );
+
+    // BFS and DFS must be unavailable
+    expect(screen.queryByRole('option', { name: /Breadth-First Search/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /Depth-First Search/i })).not.toBeInTheDocument();
+
+    // Dijkstra and A* remain available
+    expect(screen.getByRole('option', { name: /Dijkstra's Algorithm/i })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /A\* Search/i })).toBeInTheDocument();
+  });
+
+  it('Combination 3: Unweighted + Directed -> BFS/DFS unavailable', () => {
+    render(
+      <ControlSidebar
+        {...defaultProps}
+        isWeighted={false}
+        isDirected={true}
+      />
+    );
+
+    // BFS and DFS must be unavailable
+    expect(screen.queryByRole('option', { name: /Breadth-First Search/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /Depth-First Search/i })).not.toBeInTheDocument();
+
+    // Dijkstra and A* remain available
+    expect(screen.getByRole('option', { name: /Dijkstra's Algorithm/i })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /A\* Search/i })).toBeInTheDocument();
+  });
+
+  it('Combination 4: Weighted + Directed -> BFS/DFS unavailable', () => {
+    render(
+      <ControlSidebar
+        {...defaultProps}
+        isWeighted={true}
+        isDirected={true}
+      />
+    );
+
+    // BFS and DFS must be unavailable
+    expect(screen.queryByRole('option', { name: /Breadth-First Search/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /Depth-First Search/i })).not.toBeInTheDocument();
+
+    // Dijkstra and A* remain available
+    expect(screen.getByRole('option', { name: /Dijkstra's Algorithm/i })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /A\* Search/i })).toBeInTheDocument();
+  });
 });

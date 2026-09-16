@@ -74,9 +74,18 @@ export const ControlSidebar: React.FC<ControlSidebarProps> = React.memo(({
         >
           <option value="dijkstra">Dijkstra's Algorithm (Priority Queue)</option>
           <option value="astar">A* Search (Heuristic Guided)</option>
-          <option value="bfs">Breadth-First Search (BFS)</option>
-          <option value="dfs">Depth-First Search (DFS)</option>
+          {!isWeighted && !isDirected && (
+            <>
+              <option value="bfs">Breadth-First Search (BFS)</option>
+              <option value="dfs">Depth-First Search (DFS)</option>
+            </>
+          )}
         </select>
+        {(isWeighted || isDirected) && (
+          <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '6px', lineHeight: '1.4' }}>
+            BFS &amp; DFS are available only for unweighted &amp; undirected graphs.
+          </div>
+        )}
       </div>
 
       {/* 2. Heuristic Function (Only for A*) */}

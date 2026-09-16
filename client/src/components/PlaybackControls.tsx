@@ -44,8 +44,9 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = React.memo(({
         bottom: '16px',
         left: '50%',
         transform: 'translateX(-50%)',
-        width: 'auto',
-        maxWidth: '96%',
+        width: '580px',
+        maxWidth: 'calc(100% - 32px)',
+        boxSizing: 'border-box',
         backgroundColor: 'rgba(26, 29, 32, 0.95)',
         border: '1px solid var(--border)',
         borderRadius: 'var(--radius-lg)',
@@ -67,9 +68,10 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = React.memo(({
           gap: '12px',
           fontSize: '11px',
           fontFamily: 'var(--font-mono)',
+          width: '100%',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
           <span
             style={{
               backgroundColor: 'var(--accent-subtle)',
@@ -77,6 +79,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = React.memo(({
               padding: '2px 8px',
               borderRadius: 'var(--radius-sm)',
               fontWeight: 700,
+              whiteSpace: 'nowrap',
             }}
           >
             Step {displayStep} / {totalSteps}
@@ -89,6 +92,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = React.memo(({
                 textTransform: 'uppercase',
                 fontSize: '10px',
                 fontWeight: 600,
+                whiteSpace: 'nowrap',
               }}
             >
               [{currentStep.action}]
@@ -98,12 +102,14 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = React.memo(({
 
         <div
           style={{
-            maxWidth: '380px',
+            flex: 1,
+            textAlign: 'right',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             color: 'var(--text-primary)',
             fontSize: '11px',
+            minWidth: 0,
           }}
           title={currentStep?.description}
         >
@@ -112,7 +118,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = React.memo(({
       </div>
 
       {/* Center: Interactive Scrubber Slider */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
         <input
           type="range"
           min="0"
@@ -120,7 +126,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = React.memo(({
           value={currentStepIndex < 0 ? 0 : currentStepIndex}
           onChange={(e) => onSeek(parseInt(e.target.value, 10))}
           style={{
-            flex: 1,
+            width: '100%',
             height: '4px',
             accentColor: 'var(--accent-primary)',
             cursor: 'pointer',
@@ -137,10 +143,10 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = React.memo(({
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '8px',
-          flexWrap: 'wrap',
+          width: '100%',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
           <button
             type="button"
             onClick={onJumpToStart}
@@ -154,7 +160,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = React.memo(({
             type="button"
             onClick={onStepBackward}
             className="btn-secondary"
-            style={{ height: '28px', padding: '0 10px', fontSize: '11px' }}
+            style={{ height: '28px', padding: '0 8px', fontSize: '11px' }}
             title="Step Backward (Left Arrow)"
           >
             ◀ Prev
@@ -163,7 +169,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = React.memo(({
             type="button"
             onClick={onTogglePlay}
             className={isPlaying ? 'btn-secondary' : 'btn-primary'}
-            style={{ height: '28px', padding: '0 14px', fontSize: '12px', fontWeight: 600 }}
+            style={{ height: '28px', padding: '0 12px', fontSize: '12px', fontWeight: 600 }}
             title="Play / Pause (Spacebar)"
           >
             {isPlaying ? '⏸ Pause' : '▶ Play'}
@@ -172,7 +178,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = React.memo(({
             type="button"
             onClick={onStepForward}
             className="btn-secondary"
-            style={{ height: '28px', padding: '0 10px', fontSize: '11px' }}
+            style={{ height: '28px', padding: '0 8px', fontSize: '11px' }}
             title="Step Forward (Right Arrow)"
           >
             Next ▶
@@ -188,7 +194,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = React.memo(({
           </button>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--text-muted)' }}>
             <span>Speed:</span>
             <select

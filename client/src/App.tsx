@@ -99,6 +99,14 @@ export const App: React.FC = () => {
     setEdgeStartNode(null);
   }, [resetPlayback]);
 
+  // Guard: Automatically fallback to Dijkstra if BFS/DFS becomes unavailable for current graph configuration
+  useEffect(() => {
+    if ((isWeighted || isDirected) && (selectedAlgorithm === 'bfs' || selectedAlgorithm === 'dfs')) {
+      setSelectedAlgorithm('dijkstra');
+      handleResetExecution();
+    }
+  }, [isWeighted, isDirected, selectedAlgorithm, handleResetExecution]);
+
   const handleClearGraph = useCallback(() => {
     setNodes([]);
     setEdges([]);
@@ -207,6 +215,10 @@ export const App: React.FC = () => {
       setErrorMessage('Please select both a source and destination node.');
       return;
     }
+    if ((selectedAlgorithm === 'bfs' || selectedAlgorithm === 'dfs') && (isWeighted || isDirected)) {
+      setErrorMessage('BFS and DFS are only available on unweighted and undirected graphs.');
+      return;
+    }
 
     setIsLoading(true);
     setErrorMessage(null);
@@ -257,13 +269,17 @@ export const App: React.FC = () => {
     setErrorMessage(null);
     handleResetExecution();
 
+    const algorithmsToCompare: { algorithm: string; heuristic?: string }[] = [
+      { algorithm: 'dijkstra' },
+      { algorithm: 'astar', heuristic: selectedHeuristic },
+    ];
+    if (!isWeighted && !isDirected) {
+      algorithmsToCompare.push({ algorithm: 'bfs' });
+      algorithmsToCompare.push({ algorithm: 'dfs' });
+    }
+
     const payload: CompareRequest = {
-      algorithms: [
-        { algorithm: 'dijkstra' },
-        { algorithm: 'astar', heuristic: selectedHeuristic },
-        { algorithm: 'bfs' },
-        { algorithm: 'dfs' },
-      ],
+      algorithms: algorithmsToCompare,
       source: sourceNode,
       target: destinationNode,
       graph: {
@@ -410,12 +426,20 @@ export const App: React.FC = () => {
           nodes={nodes}
           isDirected={isDirected}
           onToggleDirected={() => {
-            setIsDirected((prev) => !prev);
+            const nextDirected = !isDirected;
+            setIsDirected(nextDirected);
+            if (nextDirected && (selectedAlgorithm === 'bfs' || selectedAlgorithm === 'dfs')) {
+              setSelectedAlgorithm('dijkstra');
+            }
             handleResetExecution();
           }}
           isWeighted={isWeighted}
           onToggleWeighted={() => {
-            setIsWeighted((prev) => !prev);
+            const nextWeighted = !isWeighted;
+            setIsWeighted(nextWeighted);
+            if (nextWeighted && (selectedAlgorithm === 'bfs' || selectedAlgorithm === 'dfs')) {
+              setSelectedAlgorithm('dijkstra');
+            }
             handleResetExecution();
           }}
           activeTool={activeTool}

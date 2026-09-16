@@ -56,9 +56,6 @@ export const Header: React.FC<HeaderProps> = React.memo(({
             <div style={{ fontSize: '13px', fontWeight: 600, letterSpacing: '-0.01em', color: 'var(--text-primary)' }}>
               PathForge
             </div>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-              Interactive Graph Pathfinding &amp; Optimization Engine
-            </div>
           </div>
         </div>
 
@@ -116,9 +113,9 @@ export const Header: React.FC<HeaderProps> = React.memo(({
             color: 'var(--accent-primary)',
             borderColor: 'var(--accent-muted)',
           }}
-          title="Clear and generate a new valid random graph"
+          title="generate a new valid random graph"
         >
-          Generate Random Graph
+          Generate Graph
         </button>
       </div>
     </header>
