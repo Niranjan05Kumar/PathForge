@@ -14,8 +14,10 @@ export interface EngineResponse<T = any> {
 }
 
 export function getEngineBinaryPath(): string {
+  const configuredPath = process.env.CPP_ENGINE_PATH;
   const candidatePaths = [
-    process.env.CPP_ENGINE_PATH ? path.resolve(process.cwd(), process.env.CPP_ENGINE_PATH) : null,
+    configuredPath ? (path.isAbsolute(configuredPath) ? configuredPath : path.resolve(process.cwd(), configuredPath)) : null,
+    configuredPath && !path.isAbsolute(configuredPath) ? path.resolve(__dirname, '..', configuredPath) : null,
     path.resolve(__dirname, '../../../engine/build/pathforge-engine.exe'),
     path.resolve(__dirname, '../../engine/build/pathforge-engine.exe'),
     path.resolve(process.cwd(), 'engine/build/pathforge-engine.exe'),

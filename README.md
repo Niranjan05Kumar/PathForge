@@ -58,6 +58,60 @@ PathForge strictly decouples responsibilities across its three tiers:
 
 ---
 
+## 📸 Visual Showcase
+
+### 1. Interactive Algorithmic Workbench & Playback
+![PathForge Main Workspace](docs/screenshots/workspace.png)
+*Interactive graph workspace with custom node placement, floating 580px playback controller, and direct telemetry sidebar.*
+
+### 2. Route Optimization & Simultaneous Results Display
+![Pathfinding Results & Telemetry](docs/screenshots/pathfinding-result.png)
+*Dijkstra execution displaying total path cost, nodes visited, and reconstructed path sequence alongside the multi-algorithm comparison matrix.*
+
+### 3. Procedural In-Memory Graph Generation
+![Random Graph Generation](docs/screenshots/graph-editor.png)
+*Instant in-memory generation of planar connected topologies with validated coordinates and positive weights.*
+
+### 4. Responsive Mobile & Tablet Layout
+<p align="center">
+  <img src="docs/screenshots/mobile.png" width="380" alt="PathForge Mobile View" />
+</p>
+<p align="center"><em>WCAG 2.1 AA compliant responsive layout adapting seamlessly from desktop multi-column to touch mobile devices.</em></p>
+
+---
+
+## 📁 Repository Structure
+
+```text
+PathForge/
+├── engine/                          # Native C++17 DSA Engine
+│   ├── CMakeLists.txt              # CMake build configuration (flags: /W4, -Wall -Wextra)
+│   ├── include/
+│   │   ├── algorithm/              # BFS, DFS, Dijkstra, A*, IndexedMinHeap, Heuristics
+│   │   ├── graph/                  # Graph core (Adjacency list, Node, Edge)
+│   │   └── ipc/                    # JsonBridge (safe stdin/stdout IPC)
+│   ├── src/                        # C++ source implementations
+│   └── tests/                      # 66 GoogleTest unit tests
+├── server/                         # Node.js + Express + TypeScript API Gateway
+│   ├── src/
+│   │   ├── engine/engineBridge.ts  # Child process manager (spawn --ipc, 15s timeout guard)
+│   │   ├── routes/                 # /api/pathfind, /api/compare, /api/health
+│   │   └── validation/             # Strict schema and algorithm-graph compatibility checks
+│   └── tests/                      # 30 Vitest & Supertest integration tests
+├── client/                         # React 18 + TypeScript + Vite Frontend Workbench
+│   ├── src/
+│   │   ├── components/             # GraphCanvas, PlaybackControls, Header, Panels
+│   │   ├── hooks/                  # usePlayback, useCanvasNavigation
+│   │   └── utils/                  # graphGenerator, canvasMath
+│   └── src/__tests__/              # 46 Vitest + JSDOM component & unit tests
+├── docs/screenshots/               # High-resolution production interface screenshots
+├── Dockerfile                      # 4-stage production multi-container build
+├── .dockerignore                   # Minimal container build context
+└── package.json                    # Workspace orchestration & unified scripts
+```
+
+---
+
 ## 📊 Algorithm Complexity & Data Structure Matrix
 
 | Algorithm / Structure | Time Complexity (Worst) | Time Complexity (Average) | Space Complexity | Optimality Guarantee | Notes |
