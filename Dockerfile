@@ -6,11 +6,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     cmake \
     ninja-build \
     ca-certificates \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
 COPY engine/ /build/engine/
-RUN cmake -S engine -B engine/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+RUN cmake -S engine -B engine/build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
 RUN cmake --build engine/build --target pathforge-engine
 
 # Stage 2: Build React Vite Client

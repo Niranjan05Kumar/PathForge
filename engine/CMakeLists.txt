@@ -37,20 +37,26 @@ target_link_libraries(pathforge-engine PRIVATE pathforge_core)
 # Testing setup with GoogleTest
 include(CTest)
 if(BUILD_TESTING)
-    enable_testing()
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/googletest/CMakeLists.txt")
+        enable_testing()
         set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
         add_subdirectory(third_party/googletest EXCLUDE_FROM_ALL)
+        add_subdirectory(tests)
     else()
-        include(FetchContent)
-        FetchContent_Declare(
-            googletest
-            GIT_REPOSITORY https://github.com/google/googletest.git
-            GIT_TAG v1.14.0
-        )
-        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-        FetchContent_MakeAvailable(googletest)
+        find_package(Git QUIET)
+        if(GIT_FOUND)
+            enable_testing()
+            include(FetchContent)
+            FetchContent_Declare(
+                googletest
+                GIT_REPOSITORY https://github.com/google/googletest.git
+                GIT_TAG v1.14.0
+            )
+            set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+            FetchContent_MakeAvailable(googletest)
+            add_subdirectory(tests)
+        else()
+            message(STATUS "Git not found and third_party/googletest not present; skipping tests.")
+        endif()
     endif()
-
-    add_subdirectory(tests)
 endif()
