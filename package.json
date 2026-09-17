@@ -13,10 +13,13 @@
     "build:server": "npm --prefix server run build",
     "test:server": "npm --prefix server test",
     "build:client": "npm --prefix client run build",
+    "test:client": "npm --prefix client test -- --run",
     "dev:server": "npm --prefix server run dev",
     "dev:client": "npm --prefix client run dev",
     "build": "npm run build:server && npm run build:client",
-    "test": "npm run test:server"
+    "build:all": "npm run build:engine && npm run build:server && npm run build:client",
+    "test": "npm run test:server",
+    "test:all": "npm run test:engine && npm run test:server && npm run test:client"
   },
   "keywords": [
     "pathfinding",

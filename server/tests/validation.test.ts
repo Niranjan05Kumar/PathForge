@@ -168,4 +168,59 @@ describe('Server Graph Validation & IPC Hardening Suite', () => {
     expect(res.body.success).toBe(false);
     expect(res.body.error.code).toBe('DUPLICATE_NODE');
   });
+
+  it('rejects BFS when graph is weighted with INVALID_ALGORITHM_FOR_GRAPH', async () => {
+    const res = await request(app)
+      .post('/api/pathfind')
+      .send({
+        algorithm: 'bfs',
+        source: 'A',
+        target: 'B',
+        graph: {
+          directed: false,
+          weighted: true,
+          nodes: [{ id: 'A' }, { id: 'B' }],
+          edges: [{ source: 'A', target: 'B', weight: 3.0 }]
+        }
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('INVALID_ALGORITHM_FOR_GRAPH');
+  });
+
+  it('rejects DFS when graph is directed with INVALID_ALGORITHM_FOR_GRAPH', async () => {
+    const res = await request(app)
+      .post('/api/pathfind')
+      .send({
+        algorithm: 'dfs',
+        source: 'A',
+        target: 'B',
+        graph: {
+          directed: true,
+          weighted: false,
+          nodes: [{ id: 'A' }, { id: 'B' }],
+          edges: [{ source: 'A', target: 'B', weight: 1.0 }]
+        }
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('INVALID_ALGORITHM_FOR_GRAPH');
+  });
+
+  it('returns structured JSON 404 for unknown API endpoints', async () => {
+    const res = await request(app).get('/api/unknown-endpoint');
+    expect(res.status).toBe(404);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('NOT_FOUND');
+  });
+
+  it('returns ok and discovered engine path on /api/health', async () => {
+    const res = await request(app).get('/api/health');
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('ok');
+    expect(res.body.cppEngine).toBeDefined();
+    expect(res.body.cppEngine.discovered).toBe(true);
+  });
 });

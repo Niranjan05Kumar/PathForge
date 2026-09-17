@@ -1,4 +1,5 @@
 import React from 'react';
+import brandLogo from '../assets/brand-logo.svg';
 
 export interface HeaderProps {
   onClearGraph: () => void;
@@ -28,24 +29,17 @@ export const Header: React.FC<HeaderProps> = React.memo(({
     >
       {/* Left: Brand */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <div
+        <img
+          src={brandLogo}
+          alt="PathForge Brand Logo"
           style={{
             width: '26px',
             height: '26px',
             borderRadius: 'var(--radius-sm)',
-            backgroundColor: 'var(--accent-subtle)',
-            border: '1px solid var(--accent-muted)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--accent-primary)',
-            fontWeight: 700,
-            fontSize: '12px',
-            fontFamily: 'var(--font-mono)',
+            display: 'block',
+            flexShrink: 0,
           }}
-        >
-          PF
-        </div>
+        />
         <div className="brand-text">
           <div style={{ fontSize: '13px', fontWeight: 600, letterSpacing: '-0.01em', color: 'var(--text-primary)' }}>
             PathForge

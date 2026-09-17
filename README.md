@@ -29,7 +29,7 @@ C++ Algorithm Engine (Adjacency List, Custom IndexedMinHeap, Search Kernels & Te
 
 PathForge strictly decouples responsibilities across its three tiers:
 1. **C++ Algorithm Engine (`/engine`)**: The intellectual core. Implements custom adjacency lists, dual-indexing hash maps, custom binary min-heaps with $O(\log V)$ decrease-key, search kernels (BFS, DFS, Dijkstra, A*), and high-resolution timing.
-2. **Node.js Express Server (`/server`)**: The API and process manager. Pre-validates payloads against strict schemas, enforces 15s to 30s process timeout guards, spawns the C++ binary securely via `child_process.spawn()`, and returns standardized JSON envelopes.
+2. **Node.js Express Server (`/server`)**: The API and process manager. Pre-validates payloads against strict schemas, enforces 15s execution timeout guards, spawns the C++ binary securely via `child_process.spawn()`, and returns standardized JSON envelopes.
 3. **React Client (`/client`)**: The visual laboratory. Provides an interactive SVG canvas editor with draggable nodes, real-time edge weight editing, a bi-directional stepped playback engine with keyboard shortcuts, and multi-algorithm comparative analysis.
 
 ---
@@ -37,23 +37,24 @@ PathForge strictly decouples responsibilities across its three tiers:
 ## ⚡ Key Features
 
 * **Interactive Graph Canvas Editor**:
-  * Freeform vertex placement, drag-and-drop repositioning, bidirectional edge connection, and inline weight editing.
-  * Topological presets: Sample Multi-Path Network, Dijkstra Detour Network, Geometric Grid (4x4), Linear Pipeline.
+  * Freeform vertex placement, drag-and-drop repositioning, bidirectional edge connection, and inline weight editing with custom accessible modal dialog.
+  * Instant procedural generation via **Generate Graph** (procedurally generates connected, well-spaced graph topologies in memory) alongside **Clear Canvas**.
+  * Canvas navigation with smooth wheel zoom, background pan, and reset view controls.
 * **Stepped Playback Engine & Trace Animator**:
-  * Bi-directional step scrubber: `Play`, `Pause`, `Step Forward`, `Step Backward`, `Jump to Start`, `Jump to End`.
+  * Floating playback overlay (580px fixed width) with bi-directional step scrubber: `Play`, `Pause`, `Step Forward`, `Step Backward`, `Jump to Start`, `Jump to End`.
   * Discrete speed controller (0.25x, 0.5x, 1x, 2x, Max).
-  * WCAG 2.1 AA accessible visual indicators: animated amber current pulse (`anim-pulse-current`), cyan frontier breathing halo (`anim-pulse-frontier`), emerald edge relaxation wave (`anim-edge-relax`), and non-color letter badges (`"S"`, `"D"`, `"C"`, `"F"`, `"V"`).
-  * Interactive `Step Trace` panel with filterable events and click-to-scrub event navigation.
-  * Global keyboard navigation: `[Space]` for Play/Pause, `[← / →]` for step scrubbing, `[Home / End]` for timeline endpoints.
-* **Multi-Algorithm Comparative Analysis**:
-  * Side-by-side comparative execution of BFS, DFS, Dijkstra, and A* on user graphs.
-  * High-resolution kernel execution timing (`std::chrono::high_resolution_clock`) in C++.
-  * Traversal metrics: Nodes visited, edges examined, edge relaxations, and total path cost.
-  * Live **Cost Parity Verification Badge** verifying exact optimal path cost equivalence between Dijkstra and A*.
-* **100% Database-Free JSON Portability**:
-  * **Graph Import**: Upload any standard JSON graph with strict schema validation, unique ID enforcement, and user-friendly error banners.
-  * **Graph Export**: Download active canvas topologies into portable JSON files.
-  * **Experiment Export**: Download analytical experiment snapshots (topology, chosen endpoints, computed path, cost, traversal metrics, and timestamps) for reproducible research.
+  * WCAG 2.1 AA accessible visual indicators: animated amber current pulse (`anim-pulse-current`), cyan frontier halo (`anim-pulse-frontier`), emerald edge relaxation wave (`anim-edge-relax`), and non-color letter badges (`"S"`, `"D"`, `"C"`, `"F"`, `"V"`).
+  * Global keyboard navigation: `[Space]` for Play/Pause, `[← / →]` for step scrubbing, `[Home / End]` for timeline endpoints, `[V]`, `[N]`, `[E]` for canvas tools.
+* **Direct Dual-Panel Results Sidebar**:
+  * **Workspace Telemetry**: Displays Total Cost, Nodes Visited, and the Reconstructed Path Sequence with interactive path pills.
+  * **Algorithm Comparison**: Live comparative matrix table displaying `ALGO`, `COST`, and `VISITED` metrics across Dijkstra, A*, BFS, and DFS.
+  * Both results display simultaneously upon execution with zero tab toggling.
+* **DSA-First Algorithm Selection & Validation**:
+  * **Conditional Algorithm Availability**: BFS and DFS are strictly enabled only when the graph is both unweighted and undirected. Toggling weights or direction automatically falls back to Dijkstra and enforces server-side validation (`INVALID_ALGORITHM_FOR_GRAPH`).
+  * **A\* Search with Heuristics**: Supports Euclidean Distance, Manhattan Distance, and Zero Heuristic (for Dijkstra parity verification).
+* **100% Database-Free In-Memory Operation**:
+  * Zero database dependencies (no PostgreSQL, SQLite, MongoDB, Redis, or ORMs).
+  * Clean, portable, immediately runnable locally upon cloning with zero provisioning or migration steps.
 
 ---
 
@@ -63,8 +64,8 @@ PathForge strictly decouples responsibilities across its three tiers:
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Adjacency List** | $O(1)$ add node / edge | $O(1)$ amortized | $O(V + E)$ | N/A | Dual indexing (`id -> int`, `int -> id`) for contiguous memory access |
 | **IndexedMinHeap** | $O(\log V)$ push / pop / decrease-key | $O(\log V)$ | $O(V)$ | N/A | Custom binary min-heap with position index tracking for $O(1)$ key lookup |
-| **BFS (Breadth-First)** | $O(V + E)$ | $O(V + E)$ | $O(V)$ | **Shortest hops** (unweighted) | Uses `std::queue<int>`; deterministic alphabetical tie-breaking |
-| **Iterative DFS** | $O(V + E)$ | $O(V + E)$ | $O(V)$ | Non-optimal | Explicit `std::stack<int>` preventing recursion stack overflow |
+| **BFS (Breadth-First)** | $O(V + E)$ | $O(V + E)$ | $O(V)$ | **Shortest hops** (unweighted) | Available for unweighted & undirected graphs; deterministic alphabetical tie-breaking |
+| **Iterative DFS** | $O(V + E)$ | $O(V + E)$ | $O(V)$ | Non-optimal | Available for unweighted & undirected graphs; explicit `std::stack<int>` |
 | **Dijkstra's Algorithm** | $O((V + E) \log V)$ | $O((V + E) \log V)$ | $O(V)$ | **Strictly optimal** ($w \ge 0$) | Custom `IndexedMinHeap` with non-negative edge relaxation |
 | **A\* Search (Zero)** | $O((V + E) \log V)$ | $O((V + E) \log V)$ | $O(V)$ | **Strictly optimal** | Equivalence baseline matching Dijkstra's exact cost |
 | **A\* Search (Euclidean)** | $O((V + E) \log V)$ | Prunes up to 70%+ of states | $O(V)$ | **Strictly optimal** ($h \le c^*$) | Straight-line distance $L_2$; admissible on coordinate networks |
@@ -76,7 +77,7 @@ PathForge strictly decouples responsibilities across its three tiers:
 
 ### 1. Database-Free Mandate
 * **Decision**: PathForge strictly forbids PostgreSQL, SQLite, MongoDB, Redis, or ORMs. All state resides in runtime process memory.
-* **Justification**: PathForge is an algorithmic laboratory, not a commercial CRUD portal. Eliminating databases guarantees zero-configuration setup upon cloning, zero migration friction, and lightning-fast sub-millisecond in-memory graph traversals. State persistence is handled cleanly and transparently through client-side JSON import and export.
+* **Justification**: PathForge is an algorithmic laboratory, not a commercial CRUD portal. Eliminating databases guarantees zero-configuration setup upon cloning, zero migration friction, and lightning-fast sub-millisecond in-memory graph traversals.
 
 ### 2. Native C++ DSA Engine Primacy
 * **Decision**: Graph search algorithms are implemented exclusively in native C++17 and never duplicated in JavaScript or TypeScript.
@@ -95,7 +96,7 @@ PathForge strictly decouples responsibilities across its three tiers:
 * **Justification**: Generating granular step events (`visit_node`, `examine_edge`, `enqueue_node`) produces rich animation traces for the interactive canvas, while disabling trace recording during algorithm comparison isolates pure kernel metrics and minimizes serialization latency.
 
 ### 6. Abstract 2D Coordinate Plane vs GIS/Mapping APIs
-* **Decision**: Graph nodes exist on an abstract Cartesian plane ($x, y \in [0, 1000]$) rather than real-world geographic mapping SDKs (Mapbox, Leaflet, Google Maps).
+* **Decision**: Graph nodes exist on an abstract Cartesian plane rather than real-world geographic mapping SDKs (Mapbox, Leaflet, Google Maps).
 * **Justification**: Geographic mapping libraries introduce massive bundle sizes, vendor API keys, tile network latency, and spherical geodesy calculations ($L_2$ vs Haversine) that distract from core graph data structures. An abstract 2D coordinate plane keeps the application lightweight, mathematically pure, and fully functional offline.
 
 ### 7. Strict Algorithmic Laboratory Scope Boundaries
@@ -117,31 +118,40 @@ git clone https://github.com/Niranjan05Kumar/PathForge.git
 cd PathForge
 ```
 
-### 2. Build and Test the Native C++ Engine
+### 2. Build and Test Native C++ Engine
 ```bash
 # Configure and compile C++ engine & test suites
 cmake -S engine -B engine/build -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build engine/build
 
-# Execute all 64 automated GoogleTest unit tests
+# Execute all 66 automated GoogleTest unit tests
 ctest --test-dir engine/build --output-on-failure
 ```
 
-### 3. Install & Start Backend API Server
+### 3. Install Dependencies
 ```bash
-cd server
+# Install root, server, and client dependencies
 npm install
-npm run dev
-# Server listening on http://localhost:5000
+npm --prefix server install
+npm --prefix client install
 ```
 
-### 4. Install & Start Frontend Workbench
+### 4. Run All Automated Test Suites (All Tiers)
 ```bash
-cd ../client
-npm install
-npm run dev
-# Visual Workbench active on http://localhost:3000
+npm run test:all
+# Executes C++ engine tests (66), Server API tests (30), and Client UI tests (46)
 ```
+
+### 5. Start Development Servers
+```bash
+# Terminal 1: Start Backend Server (port 5000)
+npm run dev:server
+
+# Terminal 2: Start Frontend Workbench (port 3000)
+npm run dev:client
+```
+
+Open `http://localhost:3000` to interact with PathForge.
 
 ---
 
@@ -163,14 +173,15 @@ Open `http://localhost:5000` in any browser to access the complete application w
 
 ## 🧪 Automated Testing Summary
 
-PathForge enforces automated testing at every layer:
+PathForge enforces 100% automated test coverage at every tier:
 
-* **C++ Engine Unit Tests (`engine/tests/`)**:
-  * Graph lifecycle, cascade edge deletion, BFS unweighted shortest path, iterative DFS cycle resilience, Dijkstra priority queue relaxation, A* heuristic admissibility and cost parity, and trace serialization.
-* **Node.js Integration & Regression Suite (`server/tests/`)**:
-  * Pre-execution validation, `/api/pathfind`, `/api/compare`, and all mandatory specification edge cases (Empty Graph, Single Node, $S=D$, Disconnected Components, Zero Weights, Negative Weights, Missing Coordinates, and C++ Process Crash Resilience).
-* **React Production Build (`client/`)**:
-  * Compiled via Vite and TypeScript in under 1.0 second with zero type errors.
+* **C++ Engine Unit Tests (`engine/tests/`)** — **66 / 66 passed**:
+  * Graph lifecycle, cascade edge deletion, indexed min-heap operations, BFS unweighted shortest path, iterative DFS cycle resilience, Dijkstra priority queue relaxation, A* heuristic admissibility and cost parity, and JSON IPC stream processing.
+* **Node.js Integration & Regression Suite (`server/tests/`)** — **30 / 30 passed**:
+  * Pre-execution validation, `/api/pathfind`, `/api/compare`, `/api/health`, structured 404 handling, algorithm compatibility enforcement (unweighted/undirected rules for BFS/DFS), and edge case resilience (Empty Graph, Single Node, $S=D$, Disconnected Components, Zero Weights, Negative Weights, Missing Coordinates, and Process Crash Resilience).
+* **React Component & Hook Test Suite (`client/src/__tests__/`)** — **46 / 46 passed**:
+  * Header brand logo, TelemetryPanel metric isolation, ComparisonPanel matrix columns, direct dual-panel rendering, PlaybackControls 580px fixed width and keyboard shortcuts, ControlSidebar algorithm selection and dynamic availability fallback, EdgeWeightModal validation, procedural graph generator, and canvas math.
+* **Total Automated Tests**: **142 / 142 passing (100%)**.
 
 ---
 

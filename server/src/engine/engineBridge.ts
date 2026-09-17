@@ -117,11 +117,12 @@ export function executeEngine(payload: any, timeoutMs = 15000): Promise<EngineRe
         const parsed = JSON.parse(stdoutBuffer.trim());
         resolve(parsed);
       } catch (parseError: any) {
+        const snippet = stdoutBuffer.length > 200 ? stdoutBuffer.slice(0, 200) + '...' : stdoutBuffer;
         resolve({
           success: false,
           error: {
             code: 'MALFORMED_ENGINE_OUTPUT',
-            message: `Failed to parse engine output JSON: ${parseError.message}. Raw output: ${stdoutBuffer}`
+            message: `Failed to parse engine output JSON: ${parseError.message}. Raw output: ${snippet}`
           }
         });
       }

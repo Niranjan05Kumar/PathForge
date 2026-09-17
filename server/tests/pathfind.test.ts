@@ -64,7 +64,7 @@ describe('POST /api/pathfind', () => {
         source: 'A',
         target: 'C',
         recordTrace: false,
-        graph: sampleGraph
+        graph: { ...sampleGraph, weighted: false, directed: false }
       });
 
     expect(res.status).toBe(200);

@@ -5,15 +5,15 @@ import { app } from '../src/app';
 describe('POST /api/compare', () => {
   const sampleGraph = {
     directed: false,
-    weighted: true,
+    weighted: false,
     nodes: [
       { id: 'A', label: 'Alpha', x: 0.0, y: 0.0 },
       { id: 'B', label: 'Beta', x: 10.0, y: 0.0 },
       { id: 'C', label: 'Gamma', x: 20.0, y: 0.0 }
     ],
     edges: [
-      { source: 'A', target: 'B', weight: 4.0 },
-      { source: 'B', target: 'C', weight: 3.0 }
+      { source: 'A', target: 'B', weight: 1.0 },
+      { source: 'B', target: 'C', weight: 1.0 }
     ]
   };
 

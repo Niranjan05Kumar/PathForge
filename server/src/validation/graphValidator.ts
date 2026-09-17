@@ -65,6 +65,21 @@ export function validatePathfindRequest(body: any): ValidationResult {
     };
   }
 
+  // BFS and DFS are available strictly on unweighted and undirected graphs
+  if (normalizedAlgo === 'bfs' || normalizedAlgo === 'dfs') {
+    const isDirected = Boolean(graph.directed);
+    const isWeighted = Boolean(graph.weighted);
+    if (isDirected || isWeighted) {
+      return {
+        valid: false,
+        error: {
+          code: 'INVALID_ALGORITHM_FOR_GRAPH',
+          message: `Algorithm '${algorithm.toUpperCase()}' is only supported on unweighted and undirected graphs.`
+        }
+      };
+    }
+  }
+
   if (!Array.isArray(graph.nodes) || graph.nodes.length === 0) {
     return {
       valid: false,
